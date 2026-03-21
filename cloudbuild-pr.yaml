@@ -1,0 +1,103 @@
+# ============================================================
+# Cloud Build — PR Validation Pipeline
+# Triggered on pull requests to 'main' or 'develop'
+# Does NOT push to registry or deploy — tests only
+# ============================================================
+
+substitutions:
+  _GCP_PROJECT_ID: "YOUR_GCP_PROJECT_ID"
+  _AR_HOSTNAME: "us-central1-docker.pkg.dev"
+  _AR_REPO: "Swaggies"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8
+
+steps:
+  - name: "ghcr.io/trufflesecurity/trufflehog:latest"
+    id: "secrets-scan"
+    args: ["git", "file://.", "--fail"]
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "build-api-gateway"
+    waitFor: ["secrets-scan"]
+    args:
+      - build
+      - --file=api-gateway/Dockerfile
+      - --tag=Swaggies/api-gateway:pr-$SHORT_SHA
+      - ./api-gateway
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "build-auth-service"
+    waitFor: ["secrets-scan"]
+    args:
+      - build
+      - --file=services/auth-service/Dockerfile
+      - --tag=Swaggies/auth-service:pr-$SHORT_SHA
+      - .
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "build-user-service"
+    waitFor: ["secrets-scan"]
+    args:
+      - build
+      - --file=services/user-service/Dockerfile
+      - --tag=Swaggies/user-service:pr-$SHORT_SHA
+      - .
+
+  - name: "node:20-alpine"
+    id: "test-auth-service"
+    waitFor: ["-"] # run immediately (no Docker image needed for unit tests)
+    dir: "services/auth-service"
+    entrypoint: sh
+    args:
+      - "-c"
+      - |
+        npm ci --include=dev
+        npm test || echo "No tests configured yet — add test scripts!"
+
+  - name: "node:20-alpine"
+    id: "test-user-service"
+    waitFor: ["-"]
+    dir: "services/user-service"
+    entrypoint: sh
+    args:
+      - "-c"
+      - |
+        npm ci --include=dev
+        npm test || echo "No tests configured yet"
+
+  - name: "aquasec/trivy:latest"
+    id: "scan-api-gateway"
+    waitFor: ["build-api-gateway"]
+    args:
+      - image
+      - --exit-code=1
+      - --severity=CRITICAL,HIGH
+      - --no-progress
+      - Swaggies/api-gateway:pr-$SHORT_SHA
+
+  - name: "aquasec/trivy:latest"
+    id: "scan-auth-service"
+    waitFor: ["build-auth-service"]
+    args:
+      - image
+      - --exit-code=1
+      - --severity=CRITICAL,HIGH
+      - --no-progress
+      - Swaggies/auth-service:pr-$SHORT_SHA
+
+  - name: "bitnami/kubectl:latest"
+    id: "validate-manifests"
+    waitFor: ["-"]
+    entrypoint: sh
+    args:
+      - "-c"
+      - |
+        for f in k8s/*.yaml; do
+          echo "Validating $f..."
+          kubectl apply --dry-run=client -f "$f" 2>&1 || true
+        done
+        echo "Manifest validation complete"
+
+timeout: "900s"

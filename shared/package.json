@@ -1,0 +1,14 @@
+{
+  "name": "@pocket/shared",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./middleware/auth": "./middleware/auth.middleware.js"
+  },
+  "dependencies": {
+    "jsonwebtoken": "^9.0.0",
+    "nanoid": "^5.1.6"
+  }
+}

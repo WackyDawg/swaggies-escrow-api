@@ -1,0 +1,17 @@
+{
+  "title": "Service Health Dashboard",
+  "panels": [
+    {
+      "type": "gauge",
+      "title": "Service Up",
+      "targets": [{ "expr": "up" }]
+    },
+    {
+      "type": "graph",
+      "title": "CPU Usage",
+      "targets": [{ "expr": "process_cpu_seconds_total" }]
+    }
+  ],
+  "schemaVersion": 36,
+  "version": 1
+}

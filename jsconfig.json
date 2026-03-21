@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "checkJs": false,
+    "baseUrl": ".",
+    "paths": {
+      "@pocket/shared": ["shared/index.js"]
+    }
+  },
+  "exclude": ["node_modules"]
+}

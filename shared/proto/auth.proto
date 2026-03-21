@@ -1,0 +1,26 @@
+syntax = "proto3";
+ 
+package auth;
+
+service AuthService {
+  rpc CreateUser(CreateUserRequest) returns (UserResponse);
+  rpc VerifyUser(VerifyUserRequest) returns (VerifyUserResponse);
+  rpc LoginUser(LoginRequest) returns (LoginResponse);
+  rpc ForgotPassword(ForgotPasswordRequest) returns (GenericResponse);
+  rpc ResetPassword(ResetPasswordRequest) returns (GenericResponse);
+  rpc ChangePassword(ChangePasswordRequest) returns (GenericResponse);
+  rpc Logout(LogoutRequest) returns (GenericResponse);
+}
+
+message CreateUserRequest { string email = 1; string password = 2; string name = 3; string swag_id = 4; string bvn = 5; string dateOfBirth = 6; }
+message VerifyUserRequest { string token = 1; }
+message LoginRequest { string email = 1; string password = 2; }
+message ForgotPasswordRequest { string email = 1; }
+message ResetPasswordRequest { string token = 1; string password = 2; }
+message ChangePasswordRequest { string token = 1; string password = 2; }
+message LogoutRequest { string token = 1; }
+
+message UserResponse { string id = 1; string email = 2; string name = 3; }
+message VerifyUserResponse { bool verified = 1; string message = 2; }
+message LoginResponse { string accessToken = 1; string refreshToken = 2; string userId = 3; }
+message GenericResponse { bool success = 1; string message = 2; }

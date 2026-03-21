@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Swaggies Escrow - Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: #f2ede8;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+    #page-tracker { margin-top: auto; margin-bottom: auto; }
+    .mono { font-family: 'IBM Plex Mono', monospace; }
+    .card {
+      width: 100%;
+      max-width: 430px;
+      background: #faf8f5;
+      border: 1px solid #ddd8d0;
+      border-radius: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.03);
+    }
+    .section-box {
+      background: #f4f0ea;
+      border: 1px solid #e0d9cf;
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #9c9189;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 4px;
+    }
+    .btn-approve {
+      flex: 1;
+      background: #1a5c3a;
+      color: #fff;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-approve:hover { background: #164d30; }
+    .btn-approve:disabled { background: #c5bdb4; cursor: not-allowed; }
+    .btn-dispute {
+      flex: 1;
+      background: transparent;
+      color: #b54a3a;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 10px 16px;
+      border: 1px solid #e0b0a8;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+    .badge-released { background: #e4f0e9; color: #1a5c3a; }
+    .badge-review   { background: #fef3e2; color: #9a6400; }
+    .badge-locked   { background: #edebe8; color: #9c9189; }
+    .badge-active   { background: #e8eef8; color: #2b5090; }
+    .progress-track {
+      height: 5px;
+      background: #e0d9cf;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .badge-disputed { background: #fdeeed; color: #b54a3a; }
+    .progress-fill {
+      height: 100%;
+      background: #1a5c3a;
+      border-radius: 3px;
+      transition: width 0.8s ease;
+    }
+    .step-line { width: 1px; background: #ddd8d0; flex-shrink: 0; margin: 3px auto; min-height: 20px; }
+    .step-line.done { background: #1a5c3a; }
+    .step-dot {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; flex-shrink: 0;
+    }
+    .step-dot.done    { background: #e4f0e9; color: #1a5c3a; border: 1.5px solid #a8d4b8; }
+    .step-dot.current { background: #e8eef8; color: #2b5090; border: 1.5px solid #a8bde8; }
+    .step-dot.locked  { background: #f4f0ea; color: #c5bdb4; border: 1.5px solid #ddd8d0; }
+    .page-in { animation: pageIn 0.28s ease both; }
+    @keyframes pageIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    
+    /* OTP Flow & Animations */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-5px); }
+      40%, 80% { transform: translateX(5px); }
+    }
+    .shake { animation: shake 0.4s ease-in-out; }
+    
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp 0.4s ease both; }
+
+    #toast {
+      position: fixed;
+      bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(60px);
+      opacity: 0;
+      background: #2c2825;
+      color: #f4f0ea;
+      font-size: 13px; font-weight: 500;
+      padding: 10px 18px;
+      border-radius: 9px;
+      z-index: 999;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      max-width: 90vw;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .error-banner {
+      background: #fdeeed;
+      border: 1px solid #f0b8b3;
+      border-radius: 8px;
+      padding: 11px 14px;
+      font-size: 13px; color: #8a2e22;
+      display: none;
+      align-items: flex-start;
+      gap: 9px; line-height: 1.5;
+    }
+    .error-banner.visible { display: flex; }
+    hr { border: none; border-top: 1px solid #e0d9cf; margin: 0; }
+    .hidden { display: none !important; }
+
+    /* Review Drawer Styles */
+    .drawer-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(30,24,18,0.4);
+      z-index: 50;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.22s ease;
+    }
+    .drawer-backdrop.open { opacity: 1; pointer-events: all; }
+    .drawer {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: #faf8f5;
+      border-top: 1px solid #ddd8d0;
+      border-radius: 18px 18px 0 0;
+      z-index: 60;
+      padding: 0 20px 36px;
+      max-height: 95vh;
+      overflow-y: auto;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
+      max-width: 430px;
+      margin: 0 auto;
+    }
+    .drawer.open { transform: translateY(0); }
+    .drawer-handle {
+      width: 36px; height: 4px;
+      background: #ddd8d0;
+      border-radius: 2px;
+      margin: 12px auto 16px;
+    }
+    .section-label {
+      font-size: 11px; font-weight: 600;
+      color: #9c9189;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 9px;
+    }
+    .note-box {
+      background: #f4f0ea;
+      border: 1px solid #e0d9cf;
+      border-radius: 10px;
+      padding: 13px 15px;
+      font-size: 13px; color: #3a3530;
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0ece6;
+      cursor: pointer;
+    }
+    .check-item input[type=checkbox] {
+      width: 16px; height: 16px;
+      accent-color: #1a5c3a;
+      margin-top: 2px; flex-shrink: 0; cursor: pointer;
+    }
+    .check-item span { font-size: 13px; color: #3a3530; line-height: 1.45; }
+    .btn-approve-drawer {
+      width: 100%;
+      background: #1a5c3a; color: #fff;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 600; font-size: 14px;
+      padding: 13px; border: none; border-radius: 10px;
+      cursor: pointer; transition: background 0.15s, opacity 0.15s;
+      margin-top: 4px;
+    }
+    .btn-approve-drawer:hover:not(:disabled) { background: #164d30; }
+    .btn-approve-drawer:disabled { background: #c5bdb4; cursor: not-allowed; opacity: 0.75; }
+    
+    /* OTP Input Styling */
+    .otp-input-container {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 20px 0;
+    }
+    .otp-field {
+      width: 100%;
+      height: 56px;
+      background: #fff;
+      border: 1.5px solid #ddd8d0;
+      border-radius: 10px;
+      text-align: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 24px;
+      font-weight: 700;
+      color: #1e1c19;
+      transition: all 0.15s;
+    }
+    .otp-field:focus {
+      outline: none;
+      border-color: #1a5c3a;
+      box-shadow: 0 0 0 3px rgba(26,92,58,0.1);
+      background: #fdfdfb;
+    }
+    .otp-field.error { border-color: #b54a3a; color: #b54a3a; background: #fffcfb; }
+    .otp-field.success { border-color: #1a5c3a; color: #1a5c3a; background: #f4faf6; }
+
+    .resend-btn {
+      font-size: 13px;
+      color: #9c9189;
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: not-allowed;
+      text-decoration: underline;
+    }
+    .resend-btn.active { color: #2b5090; cursor: pointer; }
+    .btn-dispute-drawer {
+      width: 100%;
+      background: transparent; color: #b54a3a;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 600; font-size: 13px;
+      padding: 10px; border: 1px solid #e0b0a8; border-radius: 8px;
+      cursor: pointer; transition: all 0.15s; margin-top: 8px;
+    }
+    .milestone-clickable {
+      border-radius: 8px;
+      transition: background 0.12s;
+      cursor: pointer;
+      margin: 0 -8px;
+      padding: 0 8px;
+    }
+    .milestone-clickable:hover { background: #f0ece6; }
+    .review-tap-hint {
+      font-size: 11px;
+      color: #9a6400;
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Completion page styles */
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0ece6;
+      gap: 12px;
+    }
+    .summary-row:last-child { border-bottom: none; }
+    .summary-row-label { font-size: 12px; color: #9c9189; flex-shrink: 0; }
+    .summary-row-value { font-size: 12px; color: #2e2b27; font-weight: 600; text-align: right; }
+    .milestone-done-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0ece6; }
+    .milestone-done-row:last-child { border-bottom: none; }
+    .btn-download {
+      width: 100%;
+      background: #1a5c3a; color: #fff;
+      font-weight: 600; font-size: 14px;
+      padding: 13px 20px; border: none; border-radius: 10px;
+      cursor: pointer; transition: background 0.15s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-download:hover { background: #164d30; }
+    .star-row { display: flex; gap: 6px; justify-content: center; }
+    .star { font-size: 26px; cursor: pointer; color: #ddd8d0; }
+    .star.active { color: #e6b84a; }
+    .cert-preview {
+      background: #f4f0ea; border: 1.5px dashed #c8c0b5; border-radius: 10px;
+      padding: 16px; text-align: center; position: relative; overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+
+<div id="page-tracker" class="card page-in">
+  <div style="padding:22px 24px 20px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:3px;">
+      <div style="display:flex; align-items:center; gap:9px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a5c3a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        <span style="font-size:15px; font-weight:700; color:#1e1c19; letter-spacing:-0.01em;">Swaggies <span style="color:#1a5c3a;">Escrow</span></span>
+      </div>
+      <span class="badge badge-active" id="tracker-global-status">In Progress</span>
+    </div>
+    <p class="mono" style="font-size:11px; color:#b5aea6; margin-bottom:18px;" id="contract-ref">ESC-&#xB7;&#xB7;&#xB7;</p>
+    <hr style="margin-bottom:18px;">
+
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:18px;">
+      <div style="flex:1; min-width:0;">
+        <div class="label">Job</div>
+        <p style="font-size:14px; font-weight:600; color:#1e1c19; line-height:1.35;" id="tracker-title">—</p>
+        <p style="font-size:12px; color:#9c9189; margin-top:2px;" id="tracker-freelancer">—</p>
+      </div>
+      <div style="text-align:right; flex-shrink:0;">
+        <div class="label">Escrowed</div>
+        <p class="mono" style="font-size:20px; font-weight:700; color:#1a5c3a; letter-spacing:-0.02em;" id="tracker-amount">—</p>
+      </div>
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <div style="display:flex; justify-content:space-between; margin-bottom:7px;">
+        <span style="font-size:12px; color:#7a7067;" id="progress-label-text">—</span>
+        <span class="mono" style="font-size:12px; color:#1a5c3a; font-weight:500;" id="progress-pct">—</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progress-bar" style="width:0%"></div></div>
+    </div>
+    <hr style="margin-bottom:18px;">
+
+    <div class="label" style="margin-bottom:8px;">Milestones</div>
+    <div id="milestone-list"></div>
+    <div id="milestone-empty" class="hidden" style="padding:16px 0; text-align:center;">
+      <p style="font-size:13px; color:#9c9189;">No milestones on this contract yet.</p>
+    </div>
+
+    <div id="all-done-box" class="hidden" style="text-align:center; padding:14px 0 4px;">
+      <div style="font-size:22px; margin-bottom:8px;">&#x1F389;</div>
+      <p style="font-size:14px; font-weight:600; color:#1a5c3a; margin-bottom:3px;">All funds released</p>
+      <p style="font-size:12px; color:#9c9189;">Contract complete.</p>
+    </div>
+
+    <hr style="margin-top:18px; margin-bottom:14px;">
+    <p style="font-size:11px; color:#c5bdb4; text-align:center;">
+      Questions? <a href="mailto:support@swaggies.co" style="color:#9c9189; text-decoration:underline;">support@swaggies.co</a>
+    </p>
+  </div>
+</div>
+
+<!-- PAGE 3: COMPLETION (Included as it's the natural follow-up to tracking) -->
+<div id="page-completion" class="card page-in hidden">
+  <div style="padding: 28px 24px 24px;">
+    <div style="text-align:center; padding: 8px 0 24px;">
+      <div style="display:inline-flex; align-items:center; justify-content:center; width:72px; height:72px; background:#e4f0e9; border-radius:50%; margin-bottom:16px;">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#1a5c3a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <p style="font-size:20px; font-weight:700; color:#1e1c19; margin-bottom:6px;">Contract Complete</p>
+      <p style="font-size:13px; color:#9c9189; line-height:1.6;">All milestones approved and funds released.</p>
+    </div>
+    <hr style="margin-bottom:20px;">
+    <p class="label" style="margin-bottom:12px;">Contract Summary</p>
+    <div class="section-box" style="padding:4px 16px; margin-bottom:20px;">
+        <div class="summary-row"><span class="summary-row-label">Job</span><span class="summary-row-value" id="comp-title">---</span></div>
+        <div class="summary-row"><span class="summary-row-label">Freelancer</span><span class="summary-row-value" id="comp-freelancer">---</span></div>
+        <div class="summary-row"><span class="summary-row-label">Total paid</span><span class="summary-row-value mono" id="comp-amount" style="color:#1a5c3a;">---</span></div>
+    </div>
+    <button class="btn-download" onclick="downloadCertificate()">Download Completion Doc</button>
+  </div>
+</div>
+
+<!-- REVIEW DRAWER -->
+<div class="drawer-backdrop" id="drawer-backdrop" onclick="closeDrawer()"></div>
+<div class="drawer" id="review-drawer">
+  <div class="drawer-handle"></div>
+  
+  <!-- Step 1: Checklist -->
+  <div id="approval-selection">
+    <p class="section-label">Note from freelancer</p>
+    <div class="note-box" id="drawer-note" style="margin-bottom:20px;">—</div>
+    <p class="section-label">Before you approve</p>
+    <div id="checklist">
+        <label class="check-item"><input type="checkbox" onchange="updateApproveBtn()"><span>I've reviewed all deliverables</span></label>
+        <label class="check-item"><input type="checkbox" onchange="updateApproveBtn()"><span>The work meets requirements</span></label>
+        <label class="check-item"><input type="checkbox" onchange="updateApproveBtn()"><span>I understand release is final</span></label>
+    </div>
+    <button class="btn-approve-drawer" id="drawer-approve-btn" disabled onclick="requestApprovalCode()" style="margin-top:20px;">Approve &amp; Release Funds</button>
+    <button class="btn-dispute-drawer" id="reject-trigger-btn" onclick="toggleRejection(true)" style="margin-top:10px; border-color:#e0b0a8; color:#b54a3a;">Request Changes / Reject</button>
+    <button class="btn-dispute-drawer" onclick="closeDrawer()" style="margin-top:10px;">Cancel</button>
+  </div>
+
+  <!-- Step 1.5: Rejection Reason -->
+  <div id="rejection-container" class="hidden fade-up" style="margin-top:20px;">
+    <p class="section-label">Reason for rejection</p>
+    <textarea id="rejection-reason" class="note-box w-full" style="height:100px; resize:none; margin-bottom:15px;" placeholder="Explain what needs to be fixed..."></textarea>
+    <button class="btn-approve-drawer" style="background:#b54a3a;" onclick="rejectSubmission()">Confirm Rejection</button>
+    <button class="btn-dispute-drawer" onclick="toggleRejection(false)" style="margin-top:10px; width:100%;">Back to Approval</button>
+  </div>
+
+  <!-- Step 2: Sending OTP -->
+  <div id="otp-sending-state" class="hidden fade-up" style="text-align:center; padding: 20px 0 40px;">
+    <div class="spinner" style="width:32px; height:32px; border-width:3px; border-top-color:#1a5c3a; border-left-color:rgba(26,92,58,0.2); border-bottom-color:rgba(26,92,58,0.2); border-right-color:rgba(26,92,58,0.2); margin-bottom:20px;"></div>
+    <p style="font-size:16px; font-weight:600; color:#1e1c19; margin-bottom:8px;">Sending verification code</p>
+    <p style="font-size:13px; color:#9c9189;" id="masked-email-text">Sending a 6-digit code to cl***@example.com...</p>
+  </div>
+
+  <!-- Step 3: Enter OTP -->
+  <div id="otp-input-state" class="hidden fade-up">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <p style="font-size:15px; font-weight:700; color:#1e1c19;">Enter Secure Code</p>
+      <span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; color:#1a5c3a; background:#f4f0ea; padding:4px 8px; border-radius:4px;">
+        Code sent ✓
+      </span>
+    </div>
+    <p style="font-size:13px; color:#7a7067; line-height:1.5; margin-bottom:20px;">
+      Please enter the 6-digit code sent to your email to authorize this release.
+    </p>
+    
+    <div class="otp-input-container" id="otp-inputs">
+      <input type="text" class="otp-field" maxlength="1" inputmode="numeric" />
+      <input type="text" class="otp-field" maxlength="1" inputmode="numeric" />
+      <input type="text" class="otp-field" maxlength="1" inputmode="numeric" />
+      <input type="text" class="otp-field" maxlength="1" inputmode="numeric" />
+      <input type="text" class="otp-field" maxlength="1" inputmode="numeric" />
+      <input type="text" class="otp-field" maxlength="1" inputmode="numeric" />
+    </div>
+
+    <div id="otp-error-msg" class="hidden text-center text-xs font-semibold text-red-600 mb-4">
+      Incorrect code. Please try again.
+    </div>
+
+    <div style="text-align:center; margin-top:10px;">
+      <button id="resend-link" class="resend-btn" onclick="resendOtp()">Resend code (30s)</button>
+    </div>
+    <button class="btn-approve-drawer" id="verify-btn" onclick="verifyCode()" style="margin-top:24px;">Verify &amp; Confirm Release</button>
+  </div>
+
+  <!-- Step 4: Identity Confirmed -->
+  <div id="otp-success-state" class="hidden fade-up" style="text-align:center; padding: 20px 0 40px;">
+    <div style="display:inline-flex; align-items:center; justify-content:center; width:48px; height:48px; background:#e4f0e9; border-radius:50%; margin-bottom:16px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1a5c3a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <p style="font-size:16px; font-weight:700; color:#1a5c3a; margin-bottom:4px;">Identity confirmed</p>
+    <p style="font-size:13px; color:#9c9189;">Releasing funds now...</p>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+let invoiceData = null;
+const urlParams = new URLSearchParams(window.location.search);
+const trackingToken = urlParams.get("trackingToken");
+
+async function loadInvoice() {
+  try {
+    if (!trackingToken) {
+        alert("Invalid tracking link.");
+        return;
+    }
+
+    const res = await fetch(`http://localhost:3000/api/v1/wallet/escrow/tracking/${trackingToken}`);
+    const data = await res.json();
+    
+    if (!data.success) throw new Error(data.message || 'Invalid link');
+    
+    invoiceData = mapBackendToUI(data.data);
+    
+    if (data.data.status === 'COMPLETED') {
+        showCompletion();
+    } else {
+        showTracker();
+    }
+
+  } catch(e) {
+    alert("Failed to load tracker details.");
+  }
+}
+
+function mapBackendToUI(dbData) {
+    const tranches = dbData.milestones.map((m) => {
+        let uiStatus = m.status === 'COMPLETED' ? 'released' : m.status === 'IN_REVIEW' ? 'review' : m.status === 'DISPUTED' ? 'disputed' : 'locked';
+        return {
+            id: m._id,
+            name: m.title,
+            amount: m.amount / 100,
+            status: uiStatus,
+            date: m.releasedAt ? new Date(m.releasedAt).toLocaleDateString() : 'Pending',
+            submission: m.submissionDetails ? { note: m.submissionDetails } : null
+        };
+    });
+
+    return {
+        freelancer: dbData.freelancer,
+        title: dbData.title,
+        amountInNaira: dbData.amountInNaira,
+        clientEmail: dbData.clientEmail,
+        contractRef: 'ESC-' + trackingToken.substring(0, 6).toUpperCase(),
+        tranches: tranches
+    };
+}
+
+let resendInterval = null;
+
+function maskEmail(email) {
+  if (!email) return "cl***@example.com";
+  const [user, domain] = email.split('@');
+  return user.substring(0, 2) + '***@' + domain;
+}
+
+async function requestApprovalCode() {
+  const t = invoiceData.tranches.find(x => x.status === 'review');
+  if (!t) return;
+
+  document.getElementById('approval-selection').classList.add('hidden');
+  document.getElementById('otp-sending-state').classList.remove('hidden');
+  document.getElementById('masked-email-text').textContent = `Sending a 6-digit code to ${maskEmail(invoiceData.clientEmail)}...`;
+
+  try {
+      const res = await fetch(`http://localhost:3000/api/v1/wallet/escrow/request-approval-code/${trackingToken}`, {
+          method: 'POST'
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.message);
+
+      setTimeout(() => {
+        document.getElementById('otp-sending-state').classList.add('hidden');
+        document.getElementById('otp-input-state').classList.remove('hidden');
+        setupOtpBehavior();
+        startResendTimer(30);
+      }, 1600);
+  } catch (e) {
+      alert("Failed to send code: " + e.message);
+      document.getElementById('approval-selection').classList.remove('hidden');
+      document.getElementById('otp-sending-state').classList.add('hidden');
+  }
+}
+
+function setupOtpBehavior() {
+  const inputs = document.querySelectorAll('.otp-field');
+  inputs[0].focus();
+
+  inputs.forEach((input, index) => {
+    input.oninput = (e) => {
+      const val = e.target.value;
+      if (val && index < inputs.length - 1) {
+        inputs[index + 1].focus();
+      }
+      checkAllInputsFilled();
+    };
+
+    input.onkeydown = (e) => {
+      if (e.key === 'Backspace' && !input.value && index > 0) {
+        inputs[index - 1].focus();
+      } else if (e.key === 'ArrowLeft' && index > 0) {
+        inputs[index - 1].focus();
+      } else if (e.key === 'ArrowRight' && index < inputs.length - 1) {
+        inputs[index + 1].focus();
+      }
+    };
+
+    input.onpaste = (e) => {
+      e.preventDefault();
+      const pasteData = e.clipboardData.getData('text').slice(0, 6);
+      if (!/^\d+$/.test(pasteData)) return; // Only digits
+      
+      pasteData.split('').forEach((char, i) => {
+        if (inputs[i]) {
+          inputs[i].value = char;
+        }
+      });
+      
+      const nextIndex = Math.min(pasteData.length, inputs.length - 1);
+      inputs[nextIndex].focus();
+      checkAllInputsFilled();
+    };
+  });
+}
+
+function checkAllInputsFilled() {
+  const inputs = document.querySelectorAll('.otp-field');
+  const allFilled = Array.from(inputs).every(i => i.value.length === 1);
+  if (allFilled) {
+      verifyCode();
+  }
+}
+
+function startResendTimer(seconds) {
+  const btn = document.getElementById('resend-link');
+  btn.classList.remove('active');
+  btn.disabled = true;
+  
+  let left = seconds;
+  btn.textContent = `Resend code (${left}s)`;
+  
+  if (resendInterval) clearInterval(resendInterval);
+  resendInterval = setInterval(() => {
+    left--;
+    if (left <= 0) {
+      clearInterval(resendInterval);
+      btn.textContent = "Resend code";
+      btn.classList.add('active');
+      btn.disabled = false;
+    } else {
+      btn.textContent = `Resend code (${left}s)`;
+    }
+  }, 1000);
+}
+
+async function resendOtp() {
+  const btn = document.getElementById('resend-link');
+  if (!btn.classList.contains('active')) return;
+  
+  try {
+      const res = await fetch(`http://localhost:3000/api/v1/wallet/escrow/request-approval-code/${trackingToken}`, {
+          method: 'POST'
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.message);
+      
+      showToast('Code re-sent \u2713');
+      startResendTimer(30);
+  } catch (e) {
+      showToast('failed to resend');
+  }
+}
+
+async function verifyCode() {
+  const inputs = document.querySelectorAll('.otp-field');
+  const code = Array.from(inputs).map(i => i.value).join('');
+  const verifyBtn = document.getElementById('verify-btn');
+  const errorMsg = document.getElementById('otp-error-msg');
+  const t = invoiceData.tranches.find(x => x.status === 'review');
+
+  if (code.length < 6 || !t) return;
+
+  verifyBtn.disabled = true;
+  verifyBtn.textContent = 'Verifying...';
+
+  try {
+      const res = await fetch(`http://localhost:3000/api/v1/wallet/escrow/guest-release/${trackingToken}/milestones/${t.id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ approvalCode: code })
+      });
+      const result = await res.json();
+
+      if (result.success) {
+          // Success state
+          inputs.forEach(i => { i.classList.add('success'); i.classList.remove('error'); });
+          document.getElementById('otp-input-state').classList.add('hidden');
+          document.getElementById('otp-success-state').classList.remove('hidden');
+
+          setTimeout(() => {
+            closeDrawer(); 
+            showToast(`Funds released!`);
+            loadInvoice(); 
+          }, 1200);
+      } else {
+          handleOtpError();
+      }
+  } catch(e) {
+      handleOtpError();
+  }
+}
+
+function handleOtpError() {
+  const container = document.getElementById('otp-inputs');
+  const inputs = document.querySelectorAll('.otp-field');
+  const errorMsg = document.getElementById('otp-error-msg');
+  const verifyBtn = document.getElementById('verify-btn');
+
+  container.classList.add('shake');
+  inputs.forEach(i => i.classList.add('error'));
+  errorMsg.classList.remove('hidden');
+
+  setTimeout(() => {
+    container.classList.remove('shake');
+    inputs.forEach(i => { i.value = ''; i.classList.remove('error'); });
+    errorMsg.classList.add('hidden');
+    inputs[0].focus();
+    verifyBtn.disabled = false;
+    verifyBtn.textContent = 'Verify & Confirm Release';
+  }, 600);
+}
+
+async function approveTranche() {
+  const t = invoiceData.tranches.find(x => x.status === 'review');
+  if (!t) return;
+
+  try {
+      const res = await fetch(`http://localhost:3000/api/v1/wallet/escrow/guest-release/${trackingToken}/milestones/${t.id}`, {
+          method: 'POST'
+      });
+      const result = await res.json();
+
+      if (result.success) {
+          showToast(`Funds released!`);
+          loadInvoice(); 
+      } else {
+          alert(result.message);
+      }
+  } catch(e) {
+      alert("Error releasing funds.");
+  }
+}
+// --- End OTP Logic ---
+
+function showTracker() {
+  document.getElementById('page-tracker').classList.remove('hidden');
+  document.getElementById('page-completion').classList.add('hidden');
+  document.getElementById('tracker-title').textContent      = invoiceData.title;
+  document.getElementById('tracker-freelancer').textContent = 'with ' + invoiceData.freelancer.name;
+  document.getElementById('tracker-amount').textContent     = '\u20A6' + invoiceData.amountInNaira.toLocaleString();
+  document.getElementById('contract-ref').textContent       = invoiceData.contractRef;
+  renderMilestones(invoiceData.tranches);
+  updateProgress(invoiceData.tranches);
+}
+
+function updateProgress(tranches) {
+  const done  = tranches.filter(t => t.status === 'released').length;
+  const total = tranches.length;
+  const pct   = total ? Math.round((done / total) * 100) : 0;
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-pct').textContent = pct + '%';
+  document.getElementById('progress-label-text').textContent = done + ' of ' + total + ' milestones done';
+}
+
+function renderMilestones(tranches) {
+  const list = document.getElementById('milestone-list');
+  list.innerHTML = '';
+  tranches.forEach((t, i) => {
+    const isClickable = t.status === 'review' && t.submission;
+    const wrap = document.createElement('div');
+    wrap.className = 'flex gap-3 mb-4' + (isClickable ? ' milestone-clickable' : '');
+    if (isClickable) wrap.onclick = () => openReviewDrawer(t);
+
+    wrap.innerHTML = `
+      <div class="flex flex-col items-center">
+        <div class="step-dot ${t.status === 'released' ? 'done' : 'locked'}">${t.status === 'released' ? '✓' : i+1}</div>
+      </div>
+      <div class="flex-1">
+        <div class="flex justify-between items-start">
+            <p class="text-sm font-semibold">${t.name}</p>
+            <span class="badge ${t.status === 'review' ? 'badge-review' : t.status === 'disputed' ? 'badge-disputed' : 'badge-locked'} uppercase">${t.status}</span>
+        </div>
+        <p class="text-xs text-gray-500">₦${t.amount.toLocaleString()}</p>
+        ${isClickable ? '<div class="text-xs text-yellow-600 mt-1">Tap to review submission</div>' : ''}
+      </div>
+    `;
+    list.appendChild(wrap);
+  });
+}
+
+function openReviewDrawer(tranche) {
+  document.getElementById('drawer-note').textContent = tranche.submission.note || '(No note provided)';
+  document.getElementById('drawer-backdrop').classList.add('open');
+  document.getElementById('review-drawer').classList.add('open');
+  
+  // Ensure we show the checklist when opening (in case it was closed during OTP)
+  document.getElementById('approval-selection').classList.remove('hidden');
+  document.getElementById('otp-sending-state').classList.add('hidden');
+  document.getElementById('otp-input-state').classList.add('hidden');
+  document.getElementById('otp-success-state').classList.add('hidden');
+}
+
+function closeDrawer() {
+  document.getElementById('drawer-backdrop').classList.remove('open');
+  document.getElementById('review-drawer').classList.remove('open');
+  if (resendInterval) clearInterval(resendInterval);
+  toggleRejection(false);
+}
+
+function toggleRejection(show) {
+  if (show) {
+    document.getElementById('approval-selection').classList.add('hidden');
+    document.getElementById('rejection-container').classList.remove('hidden');
+  } else {
+    document.getElementById('approval-selection').classList.remove('hidden');
+    document.getElementById('rejection-container').classList.add('hidden');
+  }
+}
+
+async function rejectSubmission() {
+  const reason = document.getElementById('rejection-reason').value.trim();
+  const t = invoiceData.tranches.find(x => x.status === 'review');
+  
+  if (!reason) {
+    alert("Please provide a reason for rejection.");
+    return;
+  }
+  if (!t) return;
+
+  try {
+    const res = await fetch(`http://localhost:3000/api/v1/wallet/escrow/guest-reject/${trackingToken}/milestones/${t.id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason })
+    });
+    const result = await res.json();
+    
+    if (result.success) {
+      showToast("Dispute raised. Freelancer notified.");
+      closeDrawer();
+      loadInvoice();
+    } else {
+      alert(result.message);
+    }
+  } catch(e) {
+    alert("Failed to process dispute.");
+  }
+}
+
+function updateApproveBtn() {
+  const boxes = document.querySelectorAll('#checklist input[type=checkbox]');
+  const allChecked = Array.from(boxes).every(b => b.checked);
+  document.getElementById('drawer-approve-btn').disabled = !allChecked;
+}
+
+function showCompletion() {
+  document.getElementById('page-tracker').classList.add('hidden');
+  document.getElementById('page-completion').classList.remove('hidden');
+  document.getElementById('comp-title').textContent = invoiceData.title;
+  document.getElementById('comp-freelancer').textContent = invoiceData.freelancer.name;
+  document.getElementById('comp-amount').textContent = '₦' + invoiceData.amountInNaira.toLocaleString();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+if (trackingToken) loadInvoice();
+else alert("No tracking token provided.");
+
+</script>
+</body>
+</html>

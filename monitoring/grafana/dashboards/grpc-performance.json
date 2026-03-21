@@ -1,0 +1,21 @@
+{
+  "title": "gRPC Performance Dashboard",
+  "panels": [
+    {
+      "type": "graph",
+      "title": "gRPC Latency (95%)",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(grpc_server_handling_seconds_bucket[1m]))"
+        }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "gRPC Request Rate",
+      "targets": [{ "expr": "sum(rate(grpc_server_started_total[1m]))" }]
+    }
+  ],
+  "schemaVersion": 36,
+  "version": 1
+}

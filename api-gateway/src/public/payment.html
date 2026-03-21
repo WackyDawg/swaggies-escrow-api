@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Swaggies Escrow - Payment</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: #f2ede8;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+    #page-payment {
+      margin-top: auto;
+      margin-bottom: auto;
+    }
+    .mono { font-family: 'IBM Plex Mono', monospace; }
+    .card {
+      width: 100%;
+      max-width: 430px;
+      background: #faf8f5;
+      border: 1px solid #ddd8d0;
+      border-radius: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.03);
+    }
+    .section-box {
+      background: #f4f0ea;
+      border: 1px solid #e0d9cf;
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #9c9189;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 4px;
+    }
+    .btn-pay {
+      width: 100%;
+      background: #1a5c3a;
+      color: #fff;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 600;
+      font-size: 14.5px;
+      padding: 13px 20px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-pay:hover { background: #164d30; }
+    .btn-pay:disabled { background: #c5bdb4; cursor: not-allowed; opacity: 0.7; }
+    .skel {
+      background: linear-gradient(90deg, #ede9e3 25%, #e4dfd8 50%, #ede9e3 75%);
+      background-size: 200% 100%;
+      animation: skel 1.4s ease infinite;
+      border-radius: 5px;
+      display: inline-block;
+    }
+    @keyframes skel { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+    .page-in { animation: pageIn 0.28s ease both; }
+    @keyframes pageIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    #toast {
+      position: fixed;
+      bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(60px);
+      opacity: 0;
+      background: #2c2825;
+      color: #f4f0ea;
+      font-size: 13px; font-weight: 500;
+      padding: 10px 18px;
+      border-radius: 9px;
+      z-index: 999;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      max-width: 90vw;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .error-banner {
+      background: #fdeeed;
+      border: 1px solid #f0b8b3;
+      border-radius: 8px;
+      padding: 11px 14px;
+      font-size: 13px; color: #8a2e22;
+      display: none;
+      align-items: flex-start;
+      gap: 9px; line-height: 1.5;
+    }
+    .error-banner.visible { display: flex; }
+    hr { border: none; border-top: 1px solid #e0d9cf; margin: 0; }
+    .warn-note {
+      background: #fffaed;
+      border-left: 3px solid #e6b84a;
+      border-radius: 0 6px 6px 0;
+      padding: 9px 12px;
+      font-size: 12px; color: #7a5a10; line-height: 1.5;
+    }
+    .spinner {
+      width: 15px; height: 15px;
+      border: 2px solid rgba(255,255,255,0.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .retry-link { color: #2b5090; text-decoration: underline; cursor: pointer; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div id="page-payment" class="card page-in">
+  <div style="padding:24px 24px 20px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:22px;">
+      <div style="display:flex; align-items:center; gap:9px;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a5c3a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        <span style="font-size:16px; font-weight:700; color:#1e1c19; letter-spacing:-0.01em;">Swaggies <span style="color:#1a5c3a;">Escrow</span></span>
+      </div>
+      <span style="font-size:11px; color:#9c9189; font-weight:500;">Secure checkout</span>
+    </div>
+
+    <div class="error-banner hidden" id="load-error" style="margin-bottom:16px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+      <div><span id="error-msg">Couldn't load payment details.</span> &nbsp;<span class="retry-link" onclick="loadInvoice()">Try again</span></div>
+    </div>
+
+    <div class="section-box" style="margin-bottom:16px;">
+      <div id="invoice-loading">
+        <div class="label">Paying</div>
+        <div class="skel" style="width:160px; height:15px; margin-bottom:14px;"></div>
+        <hr style="margin-bottom:14px;">
+        <div class="label">For</div>
+        <div class="skel" style="width:220px; height:14px; margin-bottom:5px;"></div>
+        <div class="skel" style="width:140px; height:11px; margin-bottom:14px;"></div>
+        <hr style="margin-bottom:14px;">
+        <div class="label">Amount Due</div>
+        <div class="skel" style="width:110px; height:28px;"></div>
+      </div>
+      <div id="invoice-loaded" class="hidden">
+        <div class="label">Paying</div>
+        <p style="font-size:15px; font-weight:600; color:#1e1c19; margin-bottom:14px;" id="freelancer-name">—</p>
+        <hr style="margin-bottom:14px;">
+        <div class="label">For</div>
+        <p style="font-size:14px; font-weight:500; color:#2e2b27; margin-bottom:2px;" id="invoice-title">—</p>
+        <p style="font-size:12px; color:#9c9189; margin-bottom:14px;" id="invoice-subtitle"></p>
+        <hr style="margin-bottom:14px;">
+        <div class="label">Amount due</div>
+        <p class="mono" style="font-size:26px; font-weight:700; color:#1a5c3a; letter-spacing:-0.02em;" id="invoice-amount">&#x20A6;0.00</p>
+        <p style="font-size:11px; color:#9c9189; margin-top:3px;">Held in escrow &middot; released only when you approve</p>
+      </div>
+      <div id="invoice-expired" class="hidden" style="text-align:center; padding:16px 8px;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#c5bdb4" stroke-width="1.5" style="margin:0 auto 10px; display:block;"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+        <p style="font-size:14px; font-weight:600; color:#6b6560; margin-bottom:4px;">Link expired or invalid</p>
+        <p style="font-size:12px; color:#9c9189;">Ask your freelancer to resend the payment link.</p>
+      </div>
+    </div>
+
+    <div id="tranche-preview" class="hidden" style="margin-bottom:16px;">
+      <div class="label" style="margin-bottom:10px; padding:0 2px;">How funds are released</div>
+      <div id="tranche-list" style="display:flex; flex-direction:column; gap:4px;"></div>
+    </div>
+
+    <div class="warn-note hidden" id="payment-warning" style="margin-bottom:16px;">
+      &#x26A0;&#xFE0F; This is a one-time payment link. Once funds are locked, you'll see your job tracker here.
+    </div>
+
+    <div id="restricted-box" class="hidden" style="text-align:center; padding:24px 16px; background:#fafafe; border:1px solid #eef0f2; border-radius:12px; margin-bottom:16px;">
+      <div style="width:48px; height:48px; background:#eef0f2; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1a5c3a" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      </div>
+      <p style="font-size:15px; font-weight:700; color:#1e1c19; margin-bottom:6px;">Project Funded Successfully</p>
+      <p style="font-size:13px; color:#7a7067; line-height:1.5; margin-bottom:16px;">Security Note: To approve milestones or track progress, please use the <b>secure tracking link</b> sent to your email.</p>
+      <div style="font-size:12px; color:#9c9189; padding:10px; border-top:1px solid #eef0f2;">
+        Check your inbox for: <br><b>"Project Funded Successfully - ..."</b>
+      </div>
+    </div>
+
+    <button class="btn-pay" id="pay-btn" disabled onclick="handlePayment()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      Lock Funds in Escrow
+    </button>
+    <p style="text-align:center; font-size:11px; color:#b5aea6; margin-top:12px; line-height:1.6;">
+      &#x1F512; Protected by Swaggies Smart Escrow<br>Funds only release when you confirm delivery
+    </p>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://checkout.flutterwave.com/v3.js"></script>
+<script>
+let invoiceData = null;
+const urlParams = new URLSearchParams(window.location.search);
+const paymentToken = urlParams.get("paymentToken") || urlParams.get("token"); // Support legacy 'token' param too
+
+async function loadInvoice() {
+  hideError();
+  setLoadingState();
+  
+  try {
+    if (!paymentToken) {
+      showExpiredState();
+      return;
+    }
+
+    const res = await fetch(`http://localhost:3000/api/v1/wallet/escrow/invoice/${paymentToken}`);
+    const data = await res.json();
+    
+    if (!data.success) throw new Error(data.message || 'Invalid link');
+    
+    invoiceData = mapBackendToUI(data.data);
+    
+    if (data.data.status === 'AWAITING_PAYMENT') {
+        renderInvoice();
+    } else {
+        renderInvoice();
+        showRestrictedState();
+    }
+
+  } catch(e) {
+    if (e.message && e.message.toLowerCase().includes('expired') || e.message.includes('Invalid')) {
+      showExpiredState();
+    } else {
+      showError('Failed to load. Is the server running?');
+    }
+  }
+}
+
+function mapBackendToUI(dbData) {
+    const tranches = dbData.milestones.map((m) => ({
+        id: m._id,
+        name: m.title,
+        amount: m.amount / 100,
+        status: 'locked'
+    }));
+
+    return {
+        freelancer: dbData.freelancer,
+        title: dbData.title,
+        subtitle: dbData.description,
+        amountInNaira: dbData.amountInNaira,
+        clientEmail: dbData.clientEmail,
+        tranches: tranches
+    };
+}
+
+function handlePayment() {
+  if (!invoiceData) return;
+  const btn = document.getElementById('pay-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Opening payment...';
+  
+  FlutterwaveCheckout({
+    public_key: 'FLWPUBK_TEST-3028d2054d6e2065b2c47a7e1361f801-X',
+    tx_ref: 'ESC_GUEST_' + paymentToken + '_' + Date.now(),
+    amount: invoiceData.amountInNaira,
+    currency: 'NGN',
+    payment_options: 'card, banktransfer',
+    customer: { email: invoiceData.clientEmail, name: 'Guest Client' },
+    customizations: { title: 'Swaggies Escrow', description: invoiceData.title },
+    callback: function (data) {
+        console.log("Payment successful!", data);
+        onPaymentSuccess();
+    },
+    onclose: () => {
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg> Lock Funds in Escrow';
+    }
+  });
+}
+
+function onPaymentSuccess() {
+  showToast('Funds locked \u2713');
+  setTimeout(() => {
+      loadInvoice(); // This will now trigger the restricted state
+  }, 2000); 
+}
+
+function renderInvoice() {
+  document.getElementById('invoice-loading').classList.add('hidden');
+  document.getElementById('invoice-loaded').classList.remove('hidden');
+  document.getElementById('invoice-expired').classList.add('hidden');
+  document.getElementById('freelancer-name').textContent  = invoiceData.freelancer.name;
+  document.getElementById('invoice-title').textContent    = invoiceData.title;
+  document.getElementById('invoice-subtitle').textContent = invoiceData.subtitle || '';
+  document.getElementById('invoice-amount').textContent   = '\u20A6' + invoiceData.amountInNaira.toLocaleString();
+  if (invoiceData.tranches && invoiceData.tranches.length > 1) {
+    renderTranchePreview();
+    document.getElementById('tranche-preview').classList.remove('hidden');
+  }
+  document.getElementById('payment-warning').classList.remove('hidden');
+  document.getElementById('pay-btn').disabled = false;
+}
+
+function renderTranchePreview() {
+  const list = document.getElementById('tranche-list');
+  list.innerHTML = '';
+  const total = invoiceData.amountInNaira;
+  invoiceData.tranches.forEach((t, i) => {
+    const pct = Math.round((t.amount / total) * 100);
+    const el = document.createElement('div');
+    el.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:7px 10px; background:#faf8f5; border-radius:7px;';
+    el.innerHTML =
+      '<div style="display:flex; align-items:center; gap:8px;">' +
+        '<span style="width:18px; height:18px; border-radius:50%; background:#e4f0e9; color:#1a5c3a; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0;">' + (i+1) + '</span>' +
+        '<span style="font-size:13px; color:#4a4540;">' + t.name + '</span>' +
+      '</div>' +
+      '<div style="text-align:right; flex-shrink:0;">' +
+        '<span class="mono" style="font-size:12px; color:#6b6560; font-weight:500;">\u20A6' + t.amount.toLocaleString() + '</span>' +
+        '<span style="font-size:10px; color:#b5aea6; margin-left:5px;">' + pct + '%</span>' +
+      '</div>';
+    list.appendChild(el);
+  });
+}
+
+function setLoadingState() {
+  document.getElementById('invoice-loading').classList.remove('hidden');
+  document.getElementById('invoice-loaded').classList.add('hidden');
+  document.getElementById('invoice-expired').classList.add('hidden');
+  document.getElementById('pay-btn').disabled = true;
+  document.getElementById('payment-warning').classList.add('hidden');
+}
+function showRestrictedState() {
+  document.getElementById('invoice-loading').classList.add('hidden');
+  document.getElementById('invoice-loaded').classList.remove('hidden');
+  document.getElementById('invoice-expired').classList.add('hidden');
+  document.getElementById('pay-btn').classList.add('hidden');
+  document.getElementById('payment-warning').classList.add('hidden');
+  document.getElementById('tranche-preview').classList.add('hidden');
+  document.getElementById('restricted-box').classList.remove('hidden');
+}
+function showExpiredState() {
+  document.getElementById('invoice-loading').classList.add('hidden');
+  document.getElementById('invoice-loaded').classList.add('hidden');
+  document.getElementById('invoice-expired').classList.remove('hidden');
+  document.getElementById('pay-btn').disabled = true;
+  document.getElementById('payment-warning').classList.add('hidden');
+}
+function showError(msg) {
+  document.getElementById('invoice-loading').classList.add('hidden');
+  document.getElementById('error-msg').textContent = msg;
+  document.getElementById('load-error').classList.remove('hidden');
+  document.getElementById('load-error').classList.add('visible');
+  document.getElementById('pay-btn').disabled = true;
+}
+function hideError() {
+  document.getElementById('load-error').classList.remove('visible');
+  document.getElementById('load-error').classList.add('hidden');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+if (paymentToken && paymentToken !== "pay-invoice") { 
+    loadInvoice(); 
+} else { 
+    showExpiredState(); 
+}
+</script>
+</body>
+</html>

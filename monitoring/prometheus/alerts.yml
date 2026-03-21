@@ -1,0 +1,30 @@
+groups:
+  - name: microservices-alerts
+    rules:
+
+      - alert: HighErrorRate
+        expr: sum(rate(http_request_errors_total[5m])) > 10
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate in one or more services"
+          description: "The service has more than 10 errors per minute."
+
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "A microservice is down"
+          description: "The service {{ $labels.instance }} is not responding."
+
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[2m])) > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "95th percentile latency > 1s"
+          description: "The service latency is too high."

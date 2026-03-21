@@ -1,0 +1,15 @@
+# Copy this to terraform.tfvars and fill in your values
+# NEVER commit terraform.tfvars to git
+
+project_id   = "YOUR_GCP_PROJECT_ID"
+region       = "us-central1"
+app_name     = "Swaggies"
+cluster_name = "Swaggies-cluster"
+
+# Restrict this to your office/VPN CIDR for security
+authorized_networks = [
+  {
+    cidr_block   = "0.0.0.0/0"
+    display_name = "all"
+  }
+]

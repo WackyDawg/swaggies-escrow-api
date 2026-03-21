@@ -1,0 +1,21 @@
+{
+  "title": "Microservices Overview",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Total Requests",
+      "targets": [
+        { "expr": "sum(rate(http_requests_total[1m]))" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Total Errors",
+      "targets": [
+        { "expr": "sum(rate(http_request_errors_total[1m]))" }
+      ]
+    }
+  ],
+  "schemaVersion": 36,
+  "version": 1
+}

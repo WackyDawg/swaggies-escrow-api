@@ -1,0 +1,51 @@
+# GKE Ingress with Google-Managed TLS Certificate
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: Swaggies-ingress
+  namespace: Swaggies
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    networking.gke.io/managed-certificates: "Swaggies-ssl-cert"
+    kubernetes.io/ingress.global-static-ip-name: "Swaggies-static-ip"
+    networking.gke.io/v1beta1.FrontendConfig: "Swaggies-frontend-config"
+spec:
+  rules:
+    - host: api.Swaggies.com # ← Replace with your domain
+      http:
+        paths:
+          - path: /api/v1
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 3000
+          - path: /health
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 3000
+---
+# Google Managed SSL Certificate
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: Swaggies-ssl-cert
+  namespace: Swaggies
+spec:
+  domains:
+    - api.Swaggies.com # ← Replace with your domain
+---
+# Frontend Config — HTTPS redirect
+apiVersion: networking.gke.io/v1beta1
+kind: FrontendConfig
+metadata:
+  name: Swaggies-frontend-config
+  namespace: Swaggies
+spec:
+  redirectToHttps:
+    enabled: true
+    responseCodeName: MOVED_PERMANENTLY_DEFAULT

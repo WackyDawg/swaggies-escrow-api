@@ -1,0 +1,360 @@
+services:
+  mongo:
+    image: mongo:7
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    restart: unless-stopped
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - Swaggies-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  mongo-setup:
+    image: mongo:7
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - Swaggies-net
+    restart: on-failure
+    command: >
+      bash -c '
+        echo "Waiting for MongoDB to accept connections..."
+        sleep 5
+
+        echo "Initiating replica set if not already done..."
+        mongosh --host mongo:27017 --eval "
+          try {
+            const status = rs.status();
+            print(\"Replica set already initialized, state: \" + status.myState);
+          } catch(e) {
+            print(\"Initializing replica set...\");
+            rs.initiate({
+              _id: \"rs0\",
+              members: [{ _id: 0, host: \"mongo:27017\" }]
+            });
+          }
+        "
+
+        echo "Waiting for PRIMARY to be elected..."
+        until mongosh --host mongo:27017 --eval "
+          const status = rs.status();
+          const primary = status.members && status.members.find(m => m.stateStr === \"PRIMARY\");
+          if (!primary) { print(\"No primary yet...\"); quit(1); }
+          print(\"Primary elected!\");
+          quit(0);
+        " 2>/dev/null; do
+          echo "Still waiting for primary..."
+          sleep 2
+        done
+
+        echo "Replica set is ready with a PRIMARY. Services can now connect."
+      '
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:-changeme}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - Swaggies-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${GATEWAY_PORT:-3000}:3000"
+    env_file:
+      - ./api-gateway/.env
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - USER_SERVICE_URL=http://user-service:3002
+      - WALLET_SERVICE_URL=http://wallet-service:3003
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3004
+      - PAYMENT_SERVICE_URL=http://payment-service:3005
+      - BUDGET_SERVICE_URL=http://budget-service:3006
+      - NOTIFICATION_GRPC_HOST=notification-service:5004
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      wallet-service:
+        condition: service_healthy
+    networks:
+      - Swaggies-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: ./services/auth-service/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+      - "5001:5001"
+    env_file:
+      - ./services/auth-service/.env
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - PORT=3001
+      - SERVICE_NAME=auth-service
+      - MONGO_URI=mongodb://mongo:27017/authdb?replicaSet=rs0&directConnection=true
+      - NOTIFICATION_GRPC_HOST=notification-service:5004
+      - WALLET_GRPC_HOST=wallet-service:5003
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - USER_GRPC_HOST=user-service:5002
+    depends_on:
+      mongo:
+        condition: service_healthy
+      mongo-setup:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks:
+      - Swaggies-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  user-service:
+    build:
+      context: .
+      dockerfile: ./services/user-service/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3002:3002"
+      - "5002:5002"
+    env_file:
+      - ./services/user-service/.env
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - PORT=3002
+      - SERVICE_NAME=user-service
+      - MONGO_URI=mongodb://mongo:27017/authdb?replicaSet=rs0&directConnection=true
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      mongo:
+        condition: service_healthy
+      mongo-setup:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks:
+      - Swaggies-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  wallet-service:
+    build:
+      context: .
+      dockerfile: ./services/wallet-service/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3003:3003"
+      - "5003:5003"
+    env_file:
+      - ./services/wallet-service/.env
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - PORT=3003
+      - SERVICE_NAME=wallet-service
+      - MONGO_URI=mongodb://mongo:27017/walletdb?replicaSet=rs0&directConnection=true
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - USER_GRPC_HOST=user-service:5002
+      - NOTIFICATION_GRPC_HOST=notification-service:5004
+    depends_on:
+      mongo:
+        condition: service_healthy
+      mongo-setup:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks:
+      - Swaggies-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: ./services/payment-service/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3005:3005"
+    env_file:
+      - ./services/payment-service/.env
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - PORT=3005
+      - SERVICE_NAME=payment-service
+      - MONGO_URI=mongodb://mongo:27017/paymentdb?replicaSet=rs0&directConnection=true
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      mongo:
+        condition: service_healthy
+      mongo-setup:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks:
+      - Swaggies-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  budget-service:
+    build:
+      context: .
+      dockerfile: ./services/budget-service/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3006:3006"
+    env_file:
+      - ./services/budget-service/.env
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - PORT=3006
+      - SERVICE_NAME=budget-service
+      - MONGO_URI=mongodb://mongo:27017/budgetdb?replicaSet=rs0&directConnection=true
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      mongo:
+        condition: service_healthy
+      mongo-setup:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks:
+      - Swaggies-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: ./services/notification-service/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3004:3004"
+      - "5004:5004"
+    env_file:
+      - ./services/notification-service/.env
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - PORT=3004
+      - SERVICE_NAME=notification-service
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - Swaggies-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"
+    networks:
+      - Swaggies-net
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    restart: unless-stopped
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    networks:
+      - Swaggies-net
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    restart: unless-stopped
+    ports:
+      - "3100:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    networks:
+      - Swaggies-net
+
+volumes:
+  mongo-data:
+  redis-data:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  Swaggies-net:
+    driver: bridge

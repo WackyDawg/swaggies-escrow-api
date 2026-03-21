@@ -1,0 +1,1288 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Swaggies Escrow</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: #f2ede8;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    /* vertically centre the short payment card but let taller pages scroll naturally */
+    #page-payment, #page-tracker {
+      margin-top: auto;
+      margin-bottom: auto;
+    }
+    .mono { font-family: 'IBM Plex Mono', monospace; }
+    .card {
+      width: 100%;
+      max-width: 430px;
+      background: #faf8f5;
+      border: 1px solid #ddd8d0;
+      border-radius: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.03);
+    }
+    .section-box {
+      background: #f4f0ea;
+      border: 1px solid #e0d9cf;
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #9c9189;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 4px;
+    }
+    .btn-pay {
+      width: 100%;
+      background: #1a5c3a;
+      color: #fff;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 600;
+      font-size: 14.5px;
+      padding: 13px 20px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-pay:hover { background: #164d30; }
+    .btn-pay:disabled { background: #c5bdb4; cursor: not-allowed; opacity: 0.7; }
+    .btn-approve {
+      flex: 1;
+      background: #1a5c3a;
+      color: #fff;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-approve:hover { background: #164d30; }
+    .btn-approve:disabled { background: #c5bdb4; cursor: not-allowed; }
+    .btn-dispute {
+      flex: 1;
+      background: transparent;
+      color: #b54a3a;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 10px 16px;
+      border: 1px solid #e0b0a8;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-dispute:hover { background: #fdf1ee; border-color: #c97060; }
+    .btn-ghost {
+      background: transparent;
+      color: #7a7067;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 7px 12px;
+      border: 1px solid #ddd8d0;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-ghost:hover { background: #ede9e3; color: #4a4540; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+    .badge-released { background: #e4f0e9; color: #1a5c3a; }
+    .badge-review   { background: #fef3e2; color: #9a6400; }
+    .badge-locked   { background: #edebe8; color: #9c9189; }
+    .badge-active   { background: #e8eef8; color: #2b5090; }
+    .progress-track {
+      height: 5px;
+      background: #e0d9cf;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #1a5c3a;
+      border-radius: 3px;
+      transition: width 0.8s ease;
+    }
+    .step-line { width: 1px; background: #ddd8d0; flex-shrink: 0; margin: 3px auto; min-height: 20px; }
+    .step-line.done { background: #1a5c3a; }
+    .step-dot {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; flex-shrink: 0;
+    }
+    .step-dot.done    { background: #e4f0e9; color: #1a5c3a; border: 1.5px solid #a8d4b8; }
+    .step-dot.current { background: #e8eef8; color: #2b5090; border: 1.5px solid #a8bde8; }
+    .step-dot.locked  { background: #f4f0ea; color: #c5bdb4; border: 1.5px solid #ddd8d0; }
+    .skel {
+      background: linear-gradient(90deg, #ede9e3 25%, #e4dfd8 50%, #ede9e3 75%);
+      background-size: 200% 100%;
+      animation: skel 1.4s ease infinite;
+      border-radius: 5px;
+      display: inline-block;
+    }
+    @keyframes skel { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+    .page-in { animation: pageIn 0.28s ease both; }
+    @keyframes pageIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    #toast {
+      position: fixed;
+      bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(60px);
+      opacity: 0;
+      background: #2c2825;
+      color: #f4f0ea;
+      font-size: 13px; font-weight: 500;
+      padding: 10px 18px;
+      border-radius: 9px;
+      z-index: 999;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      max-width: 90vw;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .error-banner {
+      background: #fdeeed;
+      border: 1px solid #f0b8b3;
+      border-radius: 8px;
+      padding: 11px 14px;
+      font-size: 13px; color: #8a2e22;
+      display: none;
+      align-items: flex-start;
+      gap: 9px; line-height: 1.5;
+    }
+    .error-banner.visible { display: flex; }
+    hr { border: none; border-top: 1px solid #e0d9cf; margin: 0; }
+    .warn-note {
+      background: #fffaed;
+      border-left: 3px solid #e6b84a;
+      border-radius: 0 6px 6px 0;
+      padding: 9px 12px;
+      font-size: 12px; color: #7a5a10; line-height: 1.5;
+    }
+    .spinner {
+      width: 15px; height: 15px;
+      border: 2px solid rgba(255,255,255,0.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .retry-link { color: #2b5090; text-decoration: underline; cursor: pointer; }
+    .hidden { display: none !important; }
+
+    /* ── Review Drawer ── */
+    .drawer-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(30,24,18,0.4);
+      z-index: 50;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.22s ease;
+    }
+    .drawer-backdrop.open { opacity: 1; pointer-events: all; }
+    .drawer {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: #faf8f5;
+      border-top: 1px solid #ddd8d0;
+      border-radius: 18px 18px 0 0;
+      z-index: 60;
+      padding: 0 20px 36px;
+      max-height: 90vh;
+      overflow-y: auto;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
+      max-width: 430px;
+      margin: 0 auto;
+    }
+    .drawer.open { transform: translateY(0); }
+    .drawer-handle {
+      width: 36px; height: 4px;
+      background: #ddd8d0;
+      border-radius: 2px;
+      margin: 12px auto 16px;
+    }
+    .section-label {
+      font-size: 11px; font-weight: 600;
+      color: #9c9189;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 9px;
+    }
+    .note-box {
+      background: #f4f0ea;
+      border: 1px solid #e0d9cf;
+      border-radius: 10px;
+      padding: 13px 15px;
+      font-size: 13px; color: #3a3530;
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+    .file-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #f4f0ea;
+      border: 1px solid #e0d9cf;
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 12px; color: #4a4540; font-weight: 500;
+      cursor: pointer;
+    }
+    .file-chip:hover { background: #ede9e3; }
+    .link-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #edf2fb;
+      border: 1px solid #ccd8f0;
+      border-radius: 8px;
+      padding: 9px 13px;
+      font-size: 13px; color: #2b5090; font-weight: 500;
+      cursor: pointer; text-decoration: none;
+      transition: background 0.12s;
+    }
+    .link-chip:hover { background: #dce8f8; }
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0ece6;
+      cursor: pointer;
+    }
+    .check-item:last-child { border-bottom: none; }
+    .check-item input[type=checkbox] {
+      width: 16px; height: 16px;
+      accent-color: #1a5c3a;
+      margin-top: 2px; flex-shrink: 0; cursor: pointer;
+    }
+    .check-item span { font-size: 13px; color: #3a3530; line-height: 1.45; }
+    .btn-approve-drawer {
+      width: 100%;
+      background: #1a5c3a; color: #fff;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 600; font-size: 14px;
+      padding: 13px; border: none; border-radius: 10px;
+      cursor: pointer; transition: background 0.15s, opacity 0.15s;
+      margin-top: 4px;
+    }
+    .btn-approve-drawer:hover:not(:disabled) { background: #164d30; }
+    .btn-approve-drawer:disabled { background: #c5bdb4; cursor: not-allowed; opacity: 0.75; }
+    .btn-dispute-drawer {
+      width: 100%;
+      background: transparent; color: #b54a3a;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 600; font-size: 13px;
+      padding: 10px; border: 1px solid #e0b0a8; border-radius: 8px;
+      cursor: pointer; transition: all 0.15s; margin-top: 8px;
+    }
+    .btn-dispute-drawer:hover { background: #fdf1ee; }
+    .milestone-clickable {
+      border-radius: 8px;
+      transition: background 0.12s;
+      cursor: pointer;
+      margin: 0 -8px;
+      padding: 0 8px;
+    }
+    .milestone-clickable:hover { background: #f0ece6; }
+    .review-tap-hint {
+      font-size: 11px;
+      color: #9a6400;
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* ── Completion page ── */
+    .completion-card {
+      width: 100%;
+      max-width: 430px;
+      background: #faf8f5;
+      border: 1px solid #ddd8d0;
+      border-radius: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.03);
+    }
+
+    @keyframes checkPop {
+      0%   { transform: scale(0.4); opacity: 0; }
+      60%  { transform: scale(1.15); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+    .check-animate { animation: checkPop 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up-1 { animation: fadeUp 0.4s ease 0.15s both; }
+    .fade-up-2 { animation: fadeUp 0.4s ease 0.28s both; }
+    .fade-up-3 { animation: fadeUp 0.4s ease 0.38s both; }
+    .fade-up-4 { animation: fadeUp 0.4s ease 0.48s both; }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0ece6;
+      gap: 12px;
+    }
+    .summary-row:last-child { border-bottom: none; }
+    .summary-row-label {
+      font-size: 12px;
+      color: #9c9189;
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+    .summary-row-value {
+      font-size: 12px;
+      color: #2e2b27;
+      font-weight: 600;
+      text-align: right;
+    }
+
+    .milestone-done-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0ece6;
+    }
+    .milestone-done-row:last-child { border-bottom: none; }
+
+    .btn-download {
+      width: 100%;
+      background: #1a5c3a;
+      color: #fff;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      padding: 13px 20px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-download:hover { background: #164d30; }
+
+    .btn-secondary-action {
+      width: 100%;
+      background: transparent;
+      color: #4a4540;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 11px 20px;
+      border: 1.5px solid #ddd8d0;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .btn-secondary-action:hover { background: #f0ece6; border-color: #c8c0b5; }
+
+    .star-row {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+    }
+    .star {
+      font-size: 26px;
+      cursor: pointer;
+      transition: transform 0.15s;
+      color: #ddd8d0;
+      line-height: 1;
+    }
+    .star:hover, .star.active { color: #e6b84a; transform: scale(1.15); }
+
+    .cert-preview {
+      background: #f4f0ea;
+      border: 1.5px dashed #c8c0b5;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .cert-preview::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #1a5c3a 0%, #34a870 50%, #1a5c3a 100%);
+    }
+  </style>
+</head>
+<body>
+
+<!-- PAGE 1: PAYMENT -->
+<div id="page-payment" class="card page-in">
+  <div style="padding:24px 24px 20px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:22px;">
+      <div style="display:flex; align-items:center; gap:9px;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a5c3a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        <span style="font-size:16px; font-weight:700; color:#1e1c19; letter-spacing:-0.01em;">Swaggies <span style="color:#1a5c3a;">Escrow</span></span>
+      </div>
+      <span style="font-size:11px; color:#9c9189; font-weight:500;">Secure checkout</span>
+    </div>
+
+    <div class="error-banner hidden" id="load-error" style="margin-bottom:16px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+      <div><span id="error-msg">Couldn't load payment details.</span> &nbsp;<span class="retry-link" onclick="loadInvoice()">Try again</span></div>
+    </div>
+
+    <div class="section-box" style="margin-bottom:16px;">
+      <div id="invoice-loading">
+        <div class="label">Paying</div>
+        <div class="skel" style="width:160px; height:15px; margin-bottom:14px;"></div>
+        <hr style="margin-bottom:14px;">
+        <div class="label">For</div>
+        <div class="skel" style="width:220px; height:14px; margin-bottom:5px;"></div>
+        <div class="skel" style="width:140px; height:11px; margin-bottom:14px;"></div>
+        <hr style="margin-bottom:14px;">
+        <div class="label">Amount Due</div>
+        <div class="skel" style="width:110px; height:28px;"></div>
+      </div>
+      <div id="invoice-loaded" class="hidden">
+        <div class="label">Paying</div>
+        <p style="font-size:15px; font-weight:600; color:#1e1c19; margin-bottom:14px;" id="freelancer-name">—</p>
+        <hr style="margin-bottom:14px;">
+        <div class="label">For</div>
+        <p style="font-size:14px; font-weight:500; color:#2e2b27; margin-bottom:2px;" id="invoice-title">—</p>
+        <p style="font-size:12px; color:#9c9189; margin-bottom:14px;" id="invoice-subtitle"></p>
+        <hr style="margin-bottom:14px;">
+        <div class="label">Amount due</div>
+        <p class="mono" style="font-size:26px; font-weight:700; color:#1a5c3a; letter-spacing:-0.02em;" id="invoice-amount">&#x20A6;0.00</p>
+        <p style="font-size:11px; color:#9c9189; margin-top:3px;">Held in escrow &middot; released only when you approve</p>
+      </div>
+      <div id="invoice-expired" class="hidden" style="text-align:center; padding:16px 8px;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#c5bdb4" stroke-width="1.5" style="margin:0 auto 10px; display:block;"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+        <p style="font-size:14px; font-weight:600; color:#6b6560; margin-bottom:4px;">Link expired or invalid</p>
+        <p style="font-size:12px; color:#9c9189;">Ask your freelancer to resend the payment link.</p>
+      </div>
+    </div>
+
+    <div id="tranche-preview" class="hidden" style="margin-bottom:16px;">
+      <div class="label" style="margin-bottom:10px; padding:0 2px;">How funds are released</div>
+      <div id="tranche-list" style="display:flex; flex-direction:column; gap:4px;"></div>
+    </div>
+
+    <div class="warn-note hidden" id="payment-warning" style="margin-bottom:16px;">
+      &#x26A0;&#xFE0F; This is a one-time payment link. Once funds are locked, you'll see your job tracker here.
+    </div>
+
+    <div id="restricted-box" class="hidden" style="text-align:center; padding:24px 16px; background:#fafafe; border:1px solid #eef0f2; border-radius:12px; margin-bottom:16px;">
+      <div style="width:48px; height:48px; background:#eef0f2; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1a5c3a" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      </div>
+      <p style="font-size:15px; font-weight:700; color:#1e1c19; margin-bottom:6px;">Project Funded Successfully</p>
+      <p style="font-size:13px; color:#7a7067; line-height:1.5; margin-bottom:16px;">Security Note: To approve milestones or track progress, please use the <b>secure tracking link</b> sent to your email.</p>
+      <div style="font-size:12px; color:#9c9189; padding:10px; border-top:1px solid #eef0f2;">
+        Check your inbox for: <br><b>"Project Funded Successfully - ..."</b>
+      </div>
+    </div>
+
+    <button class="btn-pay" id="pay-btn" disabled onclick="handlePayment()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      Lock Funds in Escrow
+    </button>
+    <p style="text-align:center; font-size:11px; color:#b5aea6; margin-top:12px; line-height:1.6;">
+      &#x1F512; Protected by Swaggies Smart Escrow<br>Funds only release when you confirm delivery
+    </p>
+  </div>
+</div>
+
+
+<!-- PAGE 2: TRACKER -->
+<div id="page-tracker" class="card page-in hidden">
+  <div style="padding:22px 24px 20px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:3px;">
+      <div style="display:flex; align-items:center; gap:9px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a5c3a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        <span style="font-size:15px; font-weight:700; color:#1e1c19; letter-spacing:-0.01em;">Swaggies <span style="color:#1a5c3a;">Escrow</span></span>
+      </div>
+      <span class="badge badge-active" id="tracker-global-status">In Progress</span>
+    </div>
+    <p class="mono" style="font-size:11px; color:#b5aea6; margin-bottom:18px;" id="contract-ref">ESC-&#xB7;&#xB7;&#xB7;</p>
+    <hr style="margin-bottom:18px;">
+
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:18px;">
+      <div style="flex:1; min-width:0;">
+        <div class="label">Job</div>
+        <p style="font-size:14px; font-weight:600; color:#1e1c19; line-height:1.35;" id="tracker-title">—</p>
+        <p style="font-size:12px; color:#9c9189; margin-top:2px;" id="tracker-freelancer">—</p>
+      </div>
+      <div style="text-align:right; flex-shrink:0;">
+        <div class="label">Escrowed</div>
+        <p class="mono" style="font-size:20px; font-weight:700; color:#1a5c3a; letter-spacing:-0.02em;" id="tracker-amount">—</p>
+      </div>
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <div style="display:flex; justify-content:space-between; margin-bottom:7px;">
+        <span style="font-size:12px; color:#7a7067;" id="progress-label-text">—</span>
+        <span class="mono" style="font-size:12px; color:#1a5c3a; font-weight:500;" id="progress-pct">—</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progress-bar" style="width:0%"></div></div>
+    </div>
+    <hr style="margin-bottom:18px;">
+
+    <div class="label" style="margin-bottom:8px;">Milestones</div>
+    <div id="milestone-list"></div>
+    <div id="milestone-empty" class="hidden" style="padding:16px 0; text-align:center;">
+      <p style="font-size:13px; color:#9c9189;">No milestones on this contract yet.</p>
+      <p style="font-size:12px; color:#b5aea6; margin-top:3px;">Contact your freelancer to set them up.</p>
+    </div>
+
+    <div id="all-done-box" class="hidden" style="text-align:center; padding:14px 0 4px;">
+      <div style="font-size:22px; margin-bottom:8px;">&#x1F389;</div>
+      <p style="font-size:14px; font-weight:600; color:#1a5c3a; margin-bottom:3px;">All funds released</p>
+      <p style="font-size:12px; color:#9c9189;">Contract complete. Thanks for using Swaggies.</p>
+    </div>
+
+    <hr style="margin-top:18px; margin-bottom:14px;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <p style="font-size:11px; color:#c5bdb4;">Questions? <a href="mailto:support@swaggies.co" style="color:#9c9189; text-decoration:underline;">support@swaggies.co</a></p>
+      <button class="btn-ghost" onclick="showPayment()">&#x2190; Back</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- PAGE 3: COMPLETION -->
+<div id="page-completion" class="completion-card page-in hidden">
+  <div style="padding: 28px 24px 24px;">
+
+    <!-- Header -->
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
+      <div style="display:flex; align-items:center; gap:9px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a5c3a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        <span style="font-size:15px; font-weight:700; color:#1e1c19; letter-spacing:-0.01em;">Swaggies <span style="color:#1a5c3a;">Escrow</span></span>
+      </div>
+      <span class="badge badge-released">Complete</span>
+    </div>
+
+    <!-- Hero checkmark -->
+    <div style="text-align:center; padding: 8px 0 24px;">
+      <div class="check-animate" style="display:inline-flex; align-items:center; justify-content:center; width:72px; height:72px; background:#e4f0e9; border-radius:50%; margin-bottom:16px;">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#1a5c3a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <p class="fade-up-1" style="font-size:20px; font-weight:700; color:#1e1c19; margin-bottom:6px; letter-spacing:-0.01em;">Contract Complete</p>
+      <p class="fade-up-2" style="font-size:13px; color:#9c9189; line-height:1.6;">All milestones approved and funds released.<br>Great working with you.</p>
+    </div>
+
+    <hr style="border:none; border-top:1px solid #e0d9cf; margin:0 0 20px;">
+
+    <!-- Contract summary -->
+    <div class="fade-up-2" style="margin-bottom:20px;">
+      <p class="label" style="margin-bottom:12px;">Contract Summary</p>
+      <div class="section-box" style="padding:4px 16px;">
+        <div class="summary-row">
+          <span class="summary-row-label">Job</span>
+          <span class="summary-row-value" id="comp-title">---</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-row-label">Freelancer</span>
+          <span class="summary-row-value" id="comp-freelancer">---</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-row-label">Total paid</span>
+          <span class="summary-row-value mono" id="comp-amount" style="color:#1a5c3a; font-size:14px;">---</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-row-label">Contract ref</span>
+          <span class="summary-row-value mono" id="comp-ref" style="font-size:11px; color:#9c9189;">---</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-row-label">Completed</span>
+          <span class="summary-row-value" id="comp-date">---</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Milestones done list -->
+    <div class="fade-up-3" style="margin-bottom:20px;">
+      <p class="label" style="margin-bottom:12px;">Milestones Delivered</p>
+      <div id="comp-milestones"></div>
+    </div>
+
+    <hr style="border:none; border-top:1px solid #e0d9cf; margin:0 0 20px;">
+
+    <!-- Certificate preview -->
+    <div class="fade-up-3" style="margin-bottom:20px;">
+      <p class="label" style="margin-bottom:10px;">Completion Certificate</p>
+      <div class="cert-preview">
+        <p style="font-size:10px; color:#9c9189; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:8px;">Certificate of Project Completion</p>
+        <p style="font-size:13px; font-weight:700; color:#1e1c19; margin-bottom:4px;" id="cert-title-preview">---</p>
+        <p style="font-size:11px; color:#9c9189; margin-bottom:12px;" id="cert-meta-preview">---</p>
+        <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:10px;">
+          <div style="height:1px; flex:1; background:#ddd8d0;"></div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a5c3a" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <div style="height:1px; flex:1; background:#ddd8d0;"></div>
+        </div>
+        <p class="mono" style="font-size:9px; color:#b5aea6; letter-spacing:0.08em;" id="cert-ref-preview">ESC-XXXXXXXX</p>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="fade-up-4">
+      <button class="btn-download" onclick="downloadCertificate()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download Completion Doc
+      </button>
+      <button class="btn-secondary-action" onclick="shareContract()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Share Contract Summary
+      </button>
+    </div>
+
+    <hr style="border:none; border-top:1px solid #e0d9cf; margin:20px 0 16px;">
+
+    <!-- Rate experience -->
+    <div class="fade-up-4" style="text-align:center;" id="rating-section">
+      <p style="font-size:12px; color:#7a7067; margin-bottom:10px; font-weight:500;">How was your experience with <span id="comp-freelancer-rate">this freelancer</span>?</p>
+      <div class="star-row" id="star-row">
+        <span class="star" onclick="setRating(1)">&#x2605;</span>
+        <span class="star" onclick="setRating(2)">&#x2605;</span>
+        <span class="star" onclick="setRating(3)">&#x2605;</span>
+        <span class="star" onclick="setRating(4)">&#x2605;</span>
+        <span class="star" onclick="setRating(5)">&#x2605;</span>
+      </div>
+      <p style="font-size:11px; color:#b5aea6; margin-top:8px;" id="rating-hint">Tap to rate</p>
+    </div>
+    <div id="rating-done" class="hidden" style="text-align:center; padding:4px 0;">
+      <p style="font-size:12px; color:#1a5c3a; font-weight:600;">Thanks for your feedback &#x2764;&#xFE0F;</p>
+      <p style="font-size:11px; color:#9c9189; margin-top:3px;">Your review helps freelancers on the platform.</p>
+    </div>
+
+    <p style="text-align:center; font-size:11px; color:#c5bdb4; margin-top:16px;">
+      Questions? <a href="mailto:support@swaggies.co" style="color:#9c9189; text-decoration:underline;">support@swaggies.co</a>
+    </p>
+  </div>
+</div>
+
+
+<!-- REVIEW DRAWER -->
+<div class="drawer-backdrop" id="drawer-backdrop" onclick="closeDrawer()"></div>
+
+<div class="drawer" id="review-drawer" role="dialog" aria-modal="true" aria-label="Review milestone submission">
+  <div class="drawer-handle"></div>
+
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px;">
+    <div style="flex:1; min-width:0; padding-right:12px;">
+      <p style="font-size:11px; font-weight:600; color:#9c9189; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:4px;">Milestone Submission</p>
+      <p style="font-size:16px; font-weight:700; color:#1e1c19; line-height:1.3;" id="drawer-title">—</p>
+      <p style="font-size:12px; color:#9c9189; margin-top:3px;" id="drawer-submitted-at">—</p>
+    </div>
+    <button onclick="closeDrawer()" style="background:#f4f0ea; border:1px solid #e0d9cf; border-radius:7px; width:30px; height:30px; cursor:pointer; color:#7a7067; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:18px; font-family:sans-serif; line-height:1;">&#x00D7;</button>
+  </div>
+
+  <hr style="margin-bottom:18px;">
+
+  <div style="margin-bottom:20px;">
+    <p class="section-label">Note from freelancer</p>
+    <div class="note-box" id="drawer-note">—</div>
+  </div>
+
+  <div style="margin-bottom:20px;" id="drawer-links-section">
+    <p class="section-label">Deliverable links</p>
+    <div id="drawer-links" style="display:flex; flex-direction:column; gap:7px;"></div>
+  </div>
+
+  <div style="margin-bottom:22px;" id="drawer-files-section">
+    <p class="section-label">Attachments</p>
+    <div id="drawer-files" style="display:flex; flex-wrap:wrap; gap:7px;"></div>
+    <p style="font-size:11px; color:#b5aea6; margin-top:8px;">Files hosted by the freelancer. Swaggies does not store them.</p>
+  </div>
+
+  <hr style="margin-bottom:18px;">
+
+  <div style="margin-bottom:20px;">
+    <p class="section-label">Before you approve</p>
+    <p style="font-size:12px; color:#7a7067; margin-bottom:12px; line-height:1.5;">Tick all boxes to confirm you've reviewed the work. Releasing funds cannot be undone.</p>
+    <div id="checklist">
+      <label class="check-item">
+        <input type="checkbox" onchange="updateApproveBtn()">
+        <span>I've reviewed all deliverables and links above</span>
+      </label>
+      <label class="check-item">
+        <input type="checkbox" onchange="updateApproveBtn()">
+        <span>The work meets the agreed requirements for this milestone</span>
+      </label>
+      <label class="check-item">
+        <input type="checkbox" onchange="updateApproveBtn()">
+        <span>I understand fund release cannot be reversed</span>
+      </label>
+    </div>
+    <p style="font-size:11px; color:#b5aea6; margin-top:10px;" id="checklist-hint">All 3 boxes must be checked.</p>
+  </div>
+
+  <button class="btn-approve-drawer" id="drawer-approve-btn" disabled onclick="approveTranche()">
+    Approve &amp; Release Funds
+  </button>
+
+  <button class="btn-dispute-drawer" id="drawer-dispute-toggle" onclick="openDisputeFlow()">
+    Something's wrong &#x2014; Raise a Dispute
+  </button>
+
+  <div id="dispute-form" class="hidden" style="margin-top:14px; padding:14px; background:#fdf1ee; border:1px solid #f0b8b3; border-radius:10px;">
+    <p style="font-size:13px; font-weight:600; color:#8a2e22; margin-bottom:6px;">What's the issue?</p>
+    <p style="font-size:12px; color:#b54a3a; margin-bottom:10px; line-height:1.5;">Be specific &#x2014; our team will review this and contact both parties within 24 hrs. Funds stay locked until resolved.</p>
+    <textarea id="dispute-reason" rows="3" placeholder="e.g. The mobile layout wasn't delivered as agreed in the brief, and the Figma handoff files are missing..."
+      style="width:100%; padding:9px 12px; font-size:13px; font-family:'Plus Jakarta Sans',sans-serif; border:1px solid #e0b0a8; border-radius:7px; background:#fff; resize:none; outline:none; color:#3a3530; line-height:1.5;" onfocus="this.style.borderColor='#c97060'" onblur="this.style.borderColor='#e0b0a8'"></textarea>
+    <div style="display:flex; gap:8px; margin-top:10px;">
+      <button onclick="cancelDispute()" style="flex:1; padding:9px; background:transparent; border:1px solid #e0b0a8; border-radius:7px; font-size:12px; font-weight:600; color:#7a7067; cursor:pointer; font-family:'Plus Jakarta Sans',sans-serif;">Cancel</button>
+      <button onclick="submitDispute()" style="flex:2; padding:9px; background:#b54a3a; border:none; border-radius:7px; font-size:12px; font-weight:600; color:#fff; cursor:pointer; font-family:'Plus Jakarta Sans',sans-serif;">Submit Dispute</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://checkout.flutterwave.com/v3.js"></script>
+<script>
+let invoiceData = null;
+let loadAttempts = 0;
+
+const urlParams = new URLSearchParams(window.location.search);
+const paymentToken = urlParams.get("paymentToken");
+const trackingToken = urlParams.get("trackingToken");
+// Fallback for older links if needed, but primarily using the specific ones
+const legacyToken = urlParams.get("token"); 
+
+const activeToken = paymentToken || trackingToken || legacyToken;
+
+async function loadInvoice() {
+  loadAttempts++;
+  hideError();
+  setLoadingState();
+  
+  try {
+    let apiUrl = '';
+    // Use the specific routes
+    if (paymentToken) {
+      apiUrl = `http://localhost:3000/api/v1/wallet/escrow/invoice/${paymentToken}`;
+    } else if (trackingToken) {
+      apiUrl = `http://localhost:3000/api/v1/wallet/escrow/tracking/${trackingToken}`;
+    } else if (legacyToken) {
+      // Compatibility fallback
+      apiUrl = `http://localhost:3000/api/v1/wallet/escrow/invoice/${legacyToken}`;
+    }
+
+    if (!apiUrl) {
+      showExpiredState();
+      return;
+    }
+
+    const res = await fetch(apiUrl);
+    const data = await res.json();
+    
+    if (!data.success) throw new Error(data.message || 'Invalid link');
+    
+    invoiceData = mapBackendToUI(data.data);
+    
+    if (data.data.status === 'AWAITING_PAYMENT') {
+        renderInvoice();
+    } else if (data.data.status === 'COMPLETED') {
+        renderInvoice();
+        showCompletion();
+    } else {
+        renderInvoice();
+        if (invoiceData.isTrackingLink) {
+            showTracker();
+        } else {
+            showRestrictedState();
+        }
+    }
+
+  } catch(e) {
+    if (e.message && e.message.toLowerCase().includes('expired') || e.message.includes('Invalid')) {
+      showExpiredState();
+    } else {
+      showError('Failed to load. Is the server running?');
+    }
+  }
+}
+
+function mapBackendToUI(dbData) {
+    const tranches = dbData.milestones.map((m) => {
+        let uiStatus = 'locked';
+        if (dbData.status === 'AWAITING_PAYMENT') uiStatus = 'locked';
+        else if (m.status === 'COMPLETED') uiStatus = 'released';
+        else if (m.status === 'IN_REVIEW') uiStatus = 'review';
+        else if (m.status === 'PENDING') uiStatus = 'locked';
+
+        return {
+            id: m._id,
+            name: m.title,
+            amount: m.amount / 100,
+            status: uiStatus,
+            date: m.releasedAt ? new Date(m.releasedAt).toLocaleDateString() : 'Pending',
+            submission: m.submissionDetails ? { note: m.submissionDetails } : null
+        };
+    });
+
+    if (dbData.status !== 'AWAITING_PAYMENT') {
+        const firstPending = tranches.find(t => t.status === 'locked');
+        if (firstPending) firstPending.status = 'active';
+    }
+
+    return {
+        freelancer: dbData.freelancer,
+        title: dbData.title,
+        subtitle: dbData.description,
+        amountInNaira: dbData.amountInNaira,
+        clientEmail: dbData.clientEmail,
+        isTrackingLink: dbData.isTrackingLink,
+        contractRef: 'ESC-' + activeToken.substring(0, 6).toUpperCase(),
+        tranches: tranches
+    };
+}
+
+function handlePayment() {
+  if (!invoiceData) return;
+  const btn = document.getElementById('pay-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Opening payment...';
+  
+  FlutterwaveCheckout({
+    public_key: 'FLWPUBK_TEST-3028d2054d6e2065b2c47a7e1361f801-X',
+    tx_ref: 'ESC_GUEST_' + activeToken + '_' + Date.now(),
+    amount: invoiceData.amountInNaira,
+    currency: 'NGN',
+    payment_options: 'card, banktransfer',
+    customer: { email: invoiceData.clientEmail, name: 'Guest Client' },
+    customizations: { title: 'Swaggies Escrow', description: invoiceData.title },
+    callback: function (data) {
+        console.log("Payment successful!", data);
+        onPaymentSuccess();
+    },
+    onclose: () => {
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg> Lock Funds in Escrow';
+    }
+  });
+}
+
+function onPaymentSuccess() {
+  showToast('Funds locked \u2713');
+  setTimeout(() => {
+      loadInvoice();
+  }, 2000); 
+}
+
+
+async function approveTranche() {
+  const btn = document.getElementById('drawer-approve-btn');
+  btn.disabled = true;
+  btn.textContent = 'Releasing...';
+  
+  const t = invoiceData.tranches.find(x => x.status === 'review');
+  if (!t) return;
+
+  try {
+      const releaseToken = trackingToken || legacyToken;
+      const res = await fetch(`http://localhost:3000/api/v1/wallet/escrow/guest-release/${releaseToken}/milestones/${t.id}`, {
+          method: 'POST'
+      });
+      const result = await res.json();
+
+      if (result.success) {
+          showToast(`\u20A6${t.amount.toLocaleString()} released to ${invoiceData.freelancer.name}`);
+          closeDrawer();
+          
+          await loadInvoice(); 
+      } else {
+          alert("Failed to release funds: " + result.message);
+          btn.disabled = false;
+          btn.textContent = 'Approve & Release \u20A6' + t.amount.toLocaleString();
+      }
+  } catch(e) {
+      alert("Network error while releasing funds.");
+      btn.disabled = false;
+  }
+}
+
+function renderInvoice() {
+  document.getElementById('invoice-loading').classList.add('hidden');
+  document.getElementById('invoice-loaded').classList.remove('hidden');
+  document.getElementById('invoice-expired').classList.add('hidden');
+  document.getElementById('freelancer-name').textContent  = invoiceData.freelancer.name;
+  document.getElementById('invoice-title').textContent    = invoiceData.title;
+  document.getElementById('invoice-subtitle').textContent = invoiceData.subtitle || '';
+  document.getElementById('invoice-amount').textContent   = '\u20A6' + invoiceData.amountInNaira.toLocaleString();
+  if (invoiceData.tranches && invoiceData.tranches.length > 1) {
+    renderTranchePreview();
+    document.getElementById('tranche-preview').classList.remove('hidden');
+  }
+  document.getElementById('payment-warning').classList.remove('hidden');
+  document.getElementById('pay-btn').disabled = false;
+}
+
+function renderTranchePreview() {
+  const list = document.getElementById('tranche-list');
+  list.innerHTML = '';
+  const total = invoiceData.amountInNaira;
+  invoiceData.tranches.forEach((t, i) => {
+    const pct = Math.round((t.amount / total) * 100);
+    const el = document.createElement('div');
+    el.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:7px 10px; background:#faf8f5; border-radius:7px;';
+    el.innerHTML =
+      '<div style="display:flex; align-items:center; gap:8px;">' +
+        '<span style="width:18px; height:18px; border-radius:50%; background:#e4f0e9; color:#1a5c3a; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0;">' + (i+1) + '</span>' +
+        '<span style="font-size:13px; color:#4a4540;">' + t.name + '</span>' +
+      '</div>' +
+      '<div style="text-align:right; flex-shrink:0;">' +
+        '<span class="mono" style="font-size:12px; color:#6b6560; font-weight:500;">\u20A6' + t.amount.toLocaleString() + '</span>' +
+        '<span style="font-size:10px; color:#b5aea6; margin-left:5px;">' + pct + '%</span>' +
+      '</div>';
+    list.appendChild(el);
+  });
+}
+
+function setLoadingState() {
+  document.getElementById('invoice-loading').classList.remove('hidden');
+  document.getElementById('invoice-loaded').classList.add('hidden');
+  document.getElementById('invoice-expired').classList.add('hidden');
+  document.getElementById('pay-btn').disabled = true;
+  document.getElementById('payment-warning').classList.add('hidden');
+}
+function showRestrictedState() {
+  document.getElementById('invoice-loading').classList.add('hidden');
+  document.getElementById('invoice-loaded').classList.remove('hidden');
+  document.getElementById('invoice-expired').classList.add('hidden');
+  document.getElementById('pay-btn').classList.add('hidden');
+  document.getElementById('payment-warning').classList.add('hidden');
+  document.getElementById('tranche-preview').classList.add('hidden');
+  document.getElementById('restricted-box').classList.remove('hidden');
+}
+function showExpiredState() {
+  document.getElementById('invoice-loading').classList.add('hidden');
+  document.getElementById('invoice-loaded').classList.add('hidden');
+  document.getElementById('invoice-expired').classList.remove('hidden');
+  document.getElementById('pay-btn').disabled = true;
+  document.getElementById('payment-warning').classList.add('hidden');
+}
+function showError(msg) {
+  document.getElementById('invoice-loading').classList.add('hidden');
+  document.getElementById('error-msg').textContent = msg;
+  document.getElementById('load-error').classList.remove('hidden');
+  document.getElementById('load-error').classList.add('visible');
+  document.getElementById('pay-btn').disabled = true;
+}
+function hideError() {
+  document.getElementById('load-error').classList.remove('visible');
+  document.getElementById('load-error').classList.add('hidden');
+}
+
+function showTracker() {
+  document.getElementById('page-payment').classList.add('hidden');
+  document.getElementById('page-completion').classList.add('hidden');  
+  document.getElementById('page-tracker').classList.remove('hidden');
+  document.getElementById('tracker-title').textContent      = invoiceData.title;
+  document.getElementById('tracker-freelancer').textContent = 'with ' + invoiceData.freelancer.name;
+  document.getElementById('tracker-amount').textContent     = '\u20A6' + invoiceData.amountInNaira.toLocaleString();
+  document.getElementById('contract-ref').textContent       = invoiceData.contractRef || 'ESC-' + Date.now().toString().slice(-6);
+  const tranches = invoiceData.tranches || [];
+  if (!tranches.length) {
+    document.getElementById('milestone-empty').classList.remove('hidden');
+  } else {
+    renderMilestones(tranches);
+  }
+  updateProgress(tranches);
+}
+
+function updateProgress(tranches) {
+  const done  = tranches.filter(t => t.status === 'released').length;
+  const total = tranches.length;
+  const pct   = total ? Math.round((done / total) * 100) : 0;
+  setTimeout(() => { document.getElementById('progress-bar').style.width = pct + '%'; }, 150);
+  document.getElementById('progress-pct').textContent        = pct + '%';
+  document.getElementById('progress-label-text').textContent = done + ' of ' + total + ' milestone' + (total !== 1 ? 's' : '') + ' done';
+}
+
+function renderMilestones(tranches) {
+  const list = document.getElementById('milestone-list');
+  list.innerHTML = '';
+  tranches.forEach((t, i) => {
+    const isLast   = i === tranches.length - 1;
+    const dotClass = t.status === 'released' ? 'done' : (t.status === 'review' || t.status === 'active') ? 'current' : 'locked';
+    const badgeMap = { released: ['badge-released','Released'], review: ['badge-review','Awaiting you'], active: ['badge-active','In progress'], locked: ['badge-locked','Locked'] };
+    const [bClass, bLabel] = badgeMap[t.status] || ['badge-locked','Unknown'];
+    const nameColor = t.status === 'locked' ? '#9c9189' : '#1e1c19';
+    const amtColor  = t.status === 'released' ? '#1a5c3a' : t.status === 'locked' ? '#c5bdb4' : '#4a4540';
+    const isClickable = t.status === 'review' && t.submission;
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex; gap:12px;' + (isClickable ? ' cursor:pointer;' : '');
+    if (isClickable) {
+      wrap.classList.add('milestone-clickable');
+      wrap.onclick = () => openReviewDrawer(t);
+    }
+
+    const reviewHint = isClickable
+      ? '<div class="review-tap-hint"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#9a6400" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Tap to review submission</div>'
+      : '';
+
+    wrap.innerHTML =
+      '<div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0;">' +
+        '<div class="step-dot ' + dotClass + '">' + (t.status === 'released' ? '\u2713' : (i+1)) + '</div>' +
+        (!isLast ? '<div class="step-line' + (t.status === 'released' ? ' done' : '') + '" style="min-height:24px; flex:1;"></div>' : '') +
+      '</div>' +
+      '<div style="flex:1; min-width:0; padding-bottom:' + (isLast ? '0' : '16px') + ';">' +
+        '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:3px;">' +
+          '<p style="font-size:13px; font-weight:600; color:' + nameColor + '; line-height:1.35; margin:0;">' + t.name + '</p>' +
+          '<span class="badge ' + bClass + '" style="flex-shrink:0;">' + bLabel + '</span>' +
+        '</div>' +
+        '<div style="display:flex; justify-content:space-between; align-items:center;">' +
+          '<p class="mono" style="font-size:12px; color:' + amtColor + '; font-weight:' + (t.status === 'released' ? '600' : '400') + '; margin:0;">\u20A6' + t.amount.toLocaleString() + '</p>' +
+          '<p style="font-size:11px; color:#b5aea6; margin:0;">' + (t.date || '') + '</p>' +
+        '</div>' +
+        reviewHint +
+      '</div>';
+    list.appendChild(wrap);
+  });
+}
+
+function showPayment() {
+  document.getElementById('page-tracker').classList.add('hidden');
+  document.getElementById('page-payment').classList.remove('hidden');
+}
+
+function openReviewDrawer(tranche) {
+  const s = tranche.submission;
+  document.getElementById('drawer-title').textContent        = tranche.name;
+  document.getElementById('drawer-submitted-at').textContent = 'Submitted ' + (s.submittedAt || tranche.date || 'Recently');
+  document.getElementById('drawer-note').textContent         = s.note || '(No note provided)';
+  document.getElementById('drawer-approve-btn').textContent  = 'Approve & Release \u20A6' + tranche.amount.toLocaleString();
+
+  const linksEl = document.getElementById('drawer-links');
+  linksEl.innerHTML = '';
+  document.getElementById('drawer-links-section').classList.add('hidden'); // Simplified for hackathon
+  document.getElementById('drawer-files-section').classList.add('hidden'); // Simplified for hackathon
+
+  document.querySelectorAll('#checklist input[type=checkbox]').forEach(cb => cb.checked = false);
+  document.getElementById('drawer-approve-btn').disabled = true;
+  document.getElementById('checklist-hint').textContent = 'All 3 boxes must be checked.';
+  document.getElementById('dispute-form').classList.add('hidden');
+  document.getElementById('dispute-reason').value = '';
+  document.getElementById('drawer-dispute-toggle').textContent = "Something’s wrong — Raise a Dispute";
+
+  document.getElementById('drawer-backdrop').classList.add('open');
+  document.getElementById('review-drawer').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDrawer() {
+  document.getElementById('drawer-backdrop').classList.remove('open');
+  document.getElementById('review-drawer').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function updateApproveBtn() {
+  const boxes = document.querySelectorAll('#checklist input[type=checkbox]');
+  const checked = Array.from(boxes).filter(b => b.checked).length;
+  const all = boxes.length;
+  document.getElementById('drawer-approve-btn').disabled = (checked < all);
+  document.getElementById('checklist-hint').textContent = checked < all
+    ? checked + ' of ' + all + ' checked.'
+    : 'Good to go. Review your decision before approving.';
+}
+
+function showCompletion() {
+  document.getElementById('page-payment').classList.add('hidden');
+  document.getElementById('page-tracker').classList.add('hidden');
+  
+  document.getElementById('page-completion').classList.remove('hidden');
+
+  const ref = invoiceData.contractRef || 'ESC-' + Date.now().toString().slice(-6);
+  const now = new Date().toLocaleDateString('en-NG', { day:'numeric', month:'short', year:'numeric' });
+
+  document.getElementById('comp-title').textContent        = invoiceData.title;
+  document.getElementById('comp-freelancer').textContent   = invoiceData.freelancer.name;
+  document.getElementById('comp-amount').textContent       = '\u20A6' + invoiceData.amountInNaira.toLocaleString();
+  document.getElementById('comp-ref').textContent          = ref;
+  document.getElementById('comp-date').textContent         = now;
+  document.getElementById('comp-freelancer-rate').textContent = invoiceData.freelancer.name;
+
+  document.getElementById('cert-title-preview').textContent = invoiceData.title;
+  document.getElementById('cert-meta-preview').textContent  = invoiceData.freelancer.name + ' · \u20A6' + invoiceData.amountInNaira.toLocaleString();
+  document.getElementById('cert-ref-preview').textContent   = ref;
+
+  const ml = document.getElementById('comp-milestones');
+  ml.innerHTML = '';
+  invoiceData.tranches.forEach(function(t) {
+    const row = document.createElement('div');
+    row.className = 'milestone-done-row';
+    row.innerHTML =
+      '<div style="width:22px; height:22px; border-radius:50%; background:#e4f0e9; border:1.5px solid #a8d4b8; display:flex; align-items:center; justify-content:center; flex-shrink:0;">' +
+        '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1a5c3a" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>' +
+      '</div>' +
+      '<div style="flex:1; min-width:0;">' +
+        '<p style="font-size:13px; font-weight:600; color:#1e1c19; margin:0 0 1px;">' + t.name + '</p>' +
+        '<p style="font-size:11px; color:#b5aea6; margin:0;">' + (t.date || '') + '</p>' +
+      '</div>' +
+      '<p class="mono" style="font-size:12px; font-weight:600; color:#1a5c3a; flex-shrink:0; margin:0;">\u20A6' + t.amount.toLocaleString() + '</p>';
+    ml.appendChild(row);
+  });
+}
+
+function downloadCertificate() {
+  const ref  = invoiceData.contractRef || 'ESC-XXXXXXXX';
+  const now  = new Date().toLocaleDateString('en-NG', { day:'numeric', month:'long', year:'numeric' });
+  const lines = invoiceData.tranches.map(function(t, i) {
+    return '  ' + (i+1) + '. ' + t.name + '  \u20A6' + t.amount.toLocaleString();
+  }).join('\n');
+
+  var doc = [
+    '================================================',
+    '            SWAGGIES SMART ESCROW',
+    '      CERTIFICATE OF PROJECT COMPLETION',
+    '================================================',
+    '',
+    'Contract Reference : ' + ref,
+    'Date Completed     : ' + now,
+    '',
+    'JOB TITLE    : ' + invoiceData.title,
+    'FREELANCER   : ' + invoiceData.freelancer.name,
+    'CLIENT       : You',
+    'TOTAL PAID   : \u20A6' + invoiceData.amountInNaira.toLocaleString(),
+    '',
+    'MILESTONES DELIVERED',
+    '------------------------------------------------',
+    lines,
+    '',
+    '================================================',
+    'This document confirms that all project milestones',
+    'have been completed, reviewed, and approved.',
+    'All escrowed funds have been fully released.',
+    '',
+    'Issued by  : Swaggies Smart Escrow',
+    'Contact    : support@swaggies.co',
+    '================================================',
+  ].join('\n');
+
+  var blob = new Blob([doc], { type: 'text/plain' });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'swaggies-completion-' + ref + '.txt';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Downloading completion doc...');
+}
+
+function shareContract() {
+  var ref  = invoiceData.contractRef || 'ESC-XXXXXXXX';
+  var text = 'Project "' + invoiceData.title + '" is complete! Worked with ' + invoiceData.freelancer.name + ' via Swaggies Escrow. Total: \u20A6' + invoiceData.amountInNaira.toLocaleString() + '. Ref: ' + ref;
+  if (navigator.share) {
+    navigator.share({ title: 'Contract Complete', text: text }).catch(function(){});
+  } else {
+    navigator.clipboard.writeText(text).then(function() {
+      showToast('Summary copied to clipboard');
+    }).catch(function() {
+      showToast('Could not copy automatically');
+    });
+  }
+}
+
+function setRating(val) {
+  var stars = document.querySelectorAll('.star');
+  stars.forEach(function(s, i) { s.classList.toggle('active', i < val); });
+  var labels = ['', 'Poor', 'Not great', 'Okay', 'Good', 'Excellent!'];
+  document.getElementById('rating-hint').textContent = labels[val] || '';
+  clearTimeout(setRating._t);
+  setRating._t = setTimeout(function() {
+    document.getElementById('rating-section').classList.add('hidden');
+    document.getElementById('rating-done').classList.remove('hidden');
+    showToast(val >= 4 ? 'Thanks for the kind rating!' : 'Feedback noted. Thank you.');
+  }, 900);
+}
+
+function openDisputeFlow() {
+  const form = document.getElementById('dispute-form');
+  const isOpen = !form.classList.contains('hidden');
+  if (isOpen) {
+    cancelDispute();
+  } else {
+    form.classList.remove('hidden');
+    document.getElementById('drawer-dispute-toggle').textContent = 'Cancel';
+    document.getElementById('dispute-reason').focus();
+    form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+function cancelDispute() {
+  document.getElementById('dispute-form').classList.add('hidden');
+  document.getElementById('dispute-reason').value = '';
+  document.getElementById('drawer-dispute-toggle').textContent = "Something’s wrong — Raise a Dispute";
+}
+function submitDispute() {
+  const reason = document.getElementById('dispute-reason').value.trim();
+  if (!reason) {
+    document.getElementById('dispute-reason').style.borderColor = '#c97060';
+    document.getElementById('dispute-reason').placeholder = 'Please describe the issue before submitting.';
+    return;
+  }
+  closeDrawer();
+  showToast('Dispute submitted. We’ll reach out within 24 hrs.');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+if (activeToken && activeToken !== "pay-invoice") { 
+    loadInvoice(); 
+} else { 
+    showExpiredState(); 
+}
+
+</script>
+</body>
+</html>

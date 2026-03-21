@@ -1,0 +1,206 @@
+syntax = "proto3";
+
+package wallet;
+
+//   WALLET SERVICE
+service WalletService {
+  rpc CreateWallet (CreateWalletRequest) returns (CreateWalletResponse);
+  rpc GetWallet (GetWalletRequest) returns (GetWalletResponse);
+  rpc GetBalance (GetBalanceRequest) returns (GetBalanceResponse);
+  rpc GetTransactions (GetTransactionsRequest) returns (GetTransactionsResponse);
+  rpc InitiateTransfer (TransferRequest) returns (TransferResponse);
+
+  // Verification RPCs
+  rpc VerifyRecipientBankAcc (VerifyRecipientRequest) returns (VerifyRecipientResponse);
+  rpc VerifyBvn (VerifyBvnRequest) returns (VerifyBvnResponse);
+  rpc BvnAccountNameMatch (BvnAccountNameMatchRequest) returns (BvnAccountNameMatchResponse);
+}
+
+//     WALLET CREATION
+message CreateWalletRequest {
+  string userId = 1;
+  string reference = 2;
+  string walletName = 3;
+  string customer_firstname = 4;
+  string customer_lastname = 5;
+  string customer_email = 6;
+  string bvn = 7;
+  string customer_phone = 8;
+}
+
+message CreateWalletResponse {
+  bool success = 1;
+  string message = 2;
+  WalletData data = 3;
+}
+
+message WalletData {
+  string walletId = 1;
+  double balance = 2;
+  repeated Account accounts = 3;
+}
+
+message Account {
+  string accountNumber = 1;
+  string accountName = 2;
+  string bankCode = 3;
+  string bankName = 4;
+  string created_at = 5;
+}
+
+//     GET WALLET
+message GetWalletRequest {
+  string walletId = 1;
+}
+
+message GetWalletResponse {
+  bool success = 1;
+  string message = 2;
+  WalletInfo data = 3;
+}
+
+message WalletInfo {
+  string walletId = 1;
+  string walletName = 2;
+  string customerName = 3;
+  string customerEmail = 4;
+  double availableBalance = 5;
+  double ledgerBalance = 6;
+}
+
+//     GET BALANCE
+message GetBalanceRequest {
+  string accountNumber = 1;
+} 
+
+message GetBalanceResponse {
+  bool success = 1;
+  double available = 2;
+  double ledger = 3;
+}
+
+//   GET TRANSACTIONS
+message GetTransactionsRequest {
+  string accountNumber = 1;
+  int32 page = 2;
+}
+
+message GetTransactionsResponse {
+  bool success = 1;
+  string message = 2;
+  repeated Transaction transactions = 3;
+  Pagination pagination = 4;
+}
+
+message Transaction {
+  string tx_ref = 1;
+  string monnify_ref = 2;
+  double amount = 3;
+  string transaction_date = 4;
+  string transaction_type = 5;
+  string status = 6;
+  string narration = 7;
+  double balance_before = 8;
+  double balance_after = 9;
+}
+
+message Pagination {
+  int32 page = 1;
+  int32 pageSize = 2;
+  int32 totalPages = 3;
+  int32 totalElements = 4;
+  bool isFirst = 5;
+  bool isLast = 6;
+}
+
+//     TRANSFER
+message TransferRequest {
+  double amount = 1;
+  string reference = 2;
+  string narration = 3;
+  string destinationBankCode = 4;
+  string destinationAccountNumber = 5;
+  string currency = 6;
+  string sourceAccountNumber = 7;
+
+  SenderInfo senderInfo = 8;
+}
+
+message SenderInfo {
+  string sourceAccountNumber = 1;
+  string sourceAccountName = 2;
+  string sourceAccountBvn = 3;
+  string senderBankCode = 4;
+}
+
+message TransferResponse {
+  bool success = 1;
+  string message = 2;
+  string responseCode = 3;
+  string responseMessage = 4;
+  double amount = 5;
+  double service_fee = 6;
+  string batchRef = 7;
+  string status = 8;
+  int32 total_trans_count = 9;
+  string created_at = 10;
+}
+
+//     BANK VERIFICATION
+message VerifyRecipientRequest {
+  string accountNumber = 1;
+  string bankCode = 2;
+}
+
+message VerifyRecipientResponse {
+  bool success = 1;
+  string message = 2;
+  string acc_number = 3;
+  string acc_name = 4;
+  string bankCode = 5;
+}
+
+//      BVN VERIFY
+message VerifyBvnRequest {
+  string bvn = 1;
+  string full_name = 2;
+  string dateOfBirth = 3; 
+  string mobileNo = 4;
+}
+
+message VerifyBvnResponse {
+  bool success = 1;
+  string message = 2;
+  BvnMatch details = 3;
+}
+
+message BvnMatch {
+  string bvn_no = 1;
+  NameMatch assoc_name = 2;
+}
+
+message NameMatch {
+  string matchStatus = 1;
+  double matchPercentage = 2;
+}
+
+//     BVN-ACCOUNT MATCH
+message BvnAccountNameMatchRequest {
+  string bankCode = 1;
+  string accountNumber = 2;
+  string bvn_number = 3;
+}
+
+message BvnAccountNameMatchResponse {
+  bool success = 1;
+  string message = 2;
+  BvnAccountMatchDetails details = 3;
+}
+
+message BvnAccountMatchDetails {
+  string bvn_no = 1;
+  string accountName = 2;
+  string accountNumber = 3;
+  string matchStatus = 4;
+  double matchPercentage = 5;
+}

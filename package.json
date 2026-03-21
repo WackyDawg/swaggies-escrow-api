@@ -1,0 +1,28 @@
+{
+  "name": "Swaggies-microservices",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Microservices architecture for Swaggies backend",
+  "workspaces": [
+    "api-gateway",
+    "services/*",
+    "shared"
+  ],
+  "scripts": {
+    "start": "docker-compose up",
+    "start:dev": "docker-compose up --build",
+    "stop": "docker-compose down",
+    "clean": "docker-compose down -v"
+  },
+  "keywords": [
+    "microservices",
+    "finance",
+    "swaggies"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1"
+  }
+}

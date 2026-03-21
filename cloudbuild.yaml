@@ -1,0 +1,276 @@
+# ============================================================
+# Cloud Build — Main CI/CD Pipeline
+# Triggered on push to 'main' branch
+#
+# Substitutions to configure in Cloud Build trigger:
+#   _GCP_PROJECT_ID   — your GCP project ID
+#   _GKE_CLUSTER      — your GKE cluster name
+#   _GKE_REGION       — GKE cluster region (e.g. us-central1)
+#   _AR_HOSTNAME      — Artifact Registry hostname (e.g. us-central1-docker.pkg.dev)
+#   _AR_REPO          — Artifact Registry repo name (e.g. Swaggies)
+# ============================================================
+
+substitutions:
+  _GCP_PROJECT_ID: "YOUR_GCP_PROJECT_ID"
+  _GKE_CLUSTER: "Swaggies-cluster"
+  _GKE_REGION: "us-central1"
+  _AR_HOSTNAME: "us-central1-docker.pkg.dev"
+  _AR_REPO: "Swaggies"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8
+
+steps:
+  - name: "ghcr.io/trufflesecurity/trufflehog:latest"
+    id: "secrets-scan"
+    args: ["git", "file://.", "--fail"]
+    allowFailure: false
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "build-api-gateway"
+    waitFor: ["secrets-scan"]
+    args:
+      - build
+      - --file=api-gateway/Dockerfile
+      - --tag=$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/api-gateway:$SHORT_SHA
+      - --tag=$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/api-gateway:latest
+      - --cache-from=$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/api-gateway:latest
+      - ./api-gateway
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "build-auth-service"
+    waitFor: ["secrets-scan"]
+    args:
+      - build
+      - --file=services/auth-service/Dockerfile
+      - --tag=$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/auth-service:$SHORT_SHA
+      - --tag=$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/auth-service:latest
+      - --cache-from=$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/auth-service:latest
+      - .
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "build-user-service"
+    waitFor: ["secrets-scan"]
+    args:
+      - build
+      - --file=services/user-service/Dockerfile
+      - --tag=$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/user-service:$SHORT_SHA
+      - --tag=$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/user-service:latest
+      - --cache-from=$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/user-service:latest
+      - .
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "build-wallet-service"
+    waitFor: ["secrets-scan"]
+    args:
+      - build
+      - --file=services/wallet-service/Dockerfile
+      - --tag=$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/wallet-service:$SHORT_SHA
+      - --tag=$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/wallet-service:latest
+      - --cache-from=$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/wallet-service:latest
+      - .
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "build-notification-service"
+    waitFor: ["secrets-scan"]
+    args:
+      - build
+      - --file=services/notification-service/Dockerfile
+      - --tag=$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/notification-service:$SHORT_SHA
+      - --tag=$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/notification-service:latest
+      - --cache-from=$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/notification-service:latest
+      - .
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "build-payment-service"
+    waitFor: ["secrets-scan"]
+    args:
+      - build
+      - --file=services/payment-service/Dockerfile
+      - --tag=$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/payment-service:$SHORT_SHA
+      - --tag=$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/payment-service:latest
+      - --cache-from=$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/payment-service:latest
+      - .
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "build-budget-service"
+    waitFor: ["secrets-scan"]
+    args:
+      - build
+      - --file=services/budget-service/Dockerfile
+      - --tag=$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/budget-service:$SHORT_SHA
+      - --tag=$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/budget-service:latest
+      - --cache-from=$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/budget-service:latest
+      - .
+
+  - name: "aquasec/trivy:latest"
+    id: "scan-api-gateway"
+    waitFor: ["build-api-gateway"]
+    args:
+      - image
+      - --exit-code=1
+      - --severity=CRITICAL
+      - --no-progress
+      - $_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/api-gateway:$SHORT_SHA
+
+  - name: "aquasec/trivy:latest"
+    id: "scan-auth-service"
+    waitFor: ["build-auth-service"]
+    args:
+      - image
+      - --exit-code=1
+      - --severity=CRITICAL
+      - --no-progress
+      - $_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/auth-service:$SHORT_SHA
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "push-api-gateway"
+    waitFor: ["scan-api-gateway"]
+    args:
+      [
+        "push",
+        "--all-tags",
+        "$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/api-gateway",
+      ]
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "push-auth-service"
+    waitFor: ["scan-auth-service"]
+    args:
+      [
+        "push",
+        "--all-tags",
+        "$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/auth-service",
+      ]
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "push-user-service"
+    waitFor: ["build-user-service"]
+    args:
+      [
+        "push",
+        "--all-tags",
+        "$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/user-service",
+      ]
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "push-wallet-service"
+    waitFor: ["build-wallet-service"]
+    args:
+      [
+        "push",
+        "--all-tags",
+        "$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/wallet-service",
+      ]
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "push-notification-service"
+    waitFor: ["build-notification-service"]
+    args:
+      [
+        "push",
+        "--all-tags",
+        "$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/notification-service",
+      ]
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "push-payment-service"
+    waitFor: ["build-payment-service"]
+    args:
+      [
+        "push",
+        "--all-tags",
+        "$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/payment-service",
+      ]
+
+  - name: "gcr.io/cloud-builders/docker"
+    id: "push-budget-service"
+    waitFor: ["build-budget-service"]
+    args:
+      [
+        "push",
+        "--all-tags",
+        "$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/budget-service",
+      ]
+
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
+    id: "get-credentials"
+    waitFor:
+      - push-api-gateway
+      - push-auth-service
+      - push-user-service
+      - push-wallet-service
+      - push-notification-service
+      - push-payment-service
+      - push-budget-service
+    entrypoint: gcloud
+    args:
+      - container
+      - clusters
+      - get-credentials
+      - $_GKE_CLUSTER
+      - --region=$_GKE_REGION
+      - --project=$_GCP_PROJECT_ID
+
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
+    id: "deploy-to-gke"
+    waitFor: ["get-credentials"]
+    entrypoint: bash
+    args:
+      - "-c"
+      - |
+        set -e
+        IMAGE_BASE="$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO"
+        TAG="$SHORT_SHA"
+
+        # Substitute IMAGE_TAG and REGION placeholders in all manifests
+        find k8s -name "*.yaml" -exec sed -i \
+          "s|REGION-docker.pkg.dev/YOUR_GCP_PROJECT_ID/Swaggies|$IMAGE_BASE|g; s|:IMAGE_TAG|:$TAG|g" {} +
+
+        # Apply manifests in dependency order
+        kubectl apply -f k8s/namespace.yaml
+        kubectl apply -f k8s/service-account.yaml
+        kubectl apply -f k8s/configmap.yaml
+        kubectl apply -f k8s/external-secrets.yaml
+        kubectl apply -f k8s/network-policy.yaml
+        kubectl apply -f k8s/api-gateway.yaml
+        kubectl apply -f k8s/auth-service.yaml
+        kubectl apply -f k8s/user-service.yaml
+        kubectl apply -f k8s/services.yaml
+        kubectl apply -f k8s/hpa.yaml
+        kubectl apply -f k8s/ingress.yaml
+
+        # Wait for rollouts to complete
+        kubectl rollout status deployment/api-gateway -n Swaggies --timeout=120s
+        kubectl rollout status deployment/auth-service -n Swaggies --timeout=120s
+
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk:slim"
+    id: "smoke-test"
+    waitFor: ["deploy-to-gke"]
+    entrypoint: bash
+    args:
+      - "-c"
+      - |
+        set -e
+        # Get the external IP of the gateway
+        GATEWAY_IP=$(kubectl get service api-gateway -n Swaggies \
+          -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+        if [ -n "$GATEWAY_IP" ]; then
+          echo "Testing gateway at http://$GATEWAY_IP:3000/ping"
+          curl -sf "http://$GATEWAY_IP:3000/ping" | grep -q "OK"
+          echo "Smoke test passed"
+        else
+          echo "Gateway IP not yet available (expected for first deploy)"
+        fi
+
+images:
+  - "$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/api-gateway:$SHORT_SHA"
+  - "$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/auth-service:$SHORT_SHA"
+  - "$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/user-service:$SHORT_SHA"
+  - "$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/wallet-service:$SHORT_SHA"
+  - "$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/notification-service:$SHORT_SHA"
+  - "$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/payment-service:$SHORT_SHA"
+  - "$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/budget-service:$SHORT_SHA"
+
+timeout: "1800s"

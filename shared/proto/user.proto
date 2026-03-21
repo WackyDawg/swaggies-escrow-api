@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package user;
+
+service UserService {
+    rpc GetUserProfile(UserRequest) returns (UserResponse);
+    rpc findUserByPocketId(findUserRequest) returns (findUserResponse);
+    rpc CreateUserProfile(CreateUserProfileRequest) returns (CreateUserProfileResponse);
+    rpc updateUserProfile(UserRequest) returns (UserResponse);
+    rpc changePin(UserRequest) returns (UserResponse);
+}
+
+message findUserRequest {
+    string swag_id = 1;
+}
+
+message findUserResponse {
+    string swag_id = 1;
+    string name = 2;
+    string email = 3;
+}
+
+message CreateUserProfileRequest {
+    string authId = 1;
+    string name = 2;
+    string email = 3;
+    string swag_id = 4;
+}
+
+message CreateUserProfileResponse {
+    string userId = 1;
+    string message = 2;
+}
+
+message UserRequest {
+    string userId = 1;
+}
+
+message UserResponse {
+    string userId = 1;
+    string name = 2;
+    string email = 3;
+}

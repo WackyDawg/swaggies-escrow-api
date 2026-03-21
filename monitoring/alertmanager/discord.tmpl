@@ -1,0 +1,14 @@
+{{ define "discord.default.title" }}
+{{ .Status }} Alert - {{ .GroupLabels.alertname }}
+{{ end }}
+
+{{ define "discord.default.body" }}
+**Alert:** {{ .Annotations.summary }}
+
+**Description:**  
+{{ .Annotations.description }}
+
+**Service:** {{ .Labels.instance }}
+
+**Severity:** {{ .Labels.severity }}
+{{ end }}

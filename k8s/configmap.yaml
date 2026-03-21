@@ -1,0 +1,58 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: Swaggies-config
+  namespace: Swaggies
+data:
+  NODE_ENV: "production"
+
+  #Service ports
+  GATEWAY_PORT: "3000"
+  AUTH_PORT: "3001"
+  USER_PORT: "3002"
+  WALLET_PORT: "3003"
+  NOTIFICATION_PORT: "3004"
+  PAYMENT_PORT: "3005"
+  BUDGET_PORT: "3006"
+
+  #gRPC ports
+  AUTH_GRPC_PORT: "5001"
+  USER_GRPC_PORT: "5002"
+  WALLET_GRPC_PORT: "5003"
+  NOTIFICATION_GRPC_PORT: "5004"
+
+  #Inter-service URLs (Kubernetes DNS)
+  AUTH_SERVICE_URL: "http://auth-service:3001"
+  USER_SERVICE_URL: "http://user-service:3002"
+  WALLET_SERVICE_URL: "http://wallet-service:3003"
+  NOTIFICATION_SERVICE_URL: "http://notification-service:3004"
+  PAYMENT_SERVICE_URL: "http://payment-service:3005"
+  BUDGET_SERVICE_URL: "http://budget-service:3006"
+
+  #gRPC hosts
+  AUTH_GRPC_HOST: "auth-service:5001"
+  USER_GRPC_HOST: "user-service:5002"
+  WALLET_GRPC_HOST: "wallet-service:5003"
+  NOTIFICATION_GRPC_HOST: "notification-service:5004"
+
+  #MongoDB URIs
+  # These point to MongoDB Atlas or Cloud SQL Proxy in production
+  # Override per-deployment if needed
+  AUTH_MONGO_DB: "authdb"
+  USER_MONGO_DB: "userdb"
+  WALLET_MONGO_DB: "walletdb"
+  PAYMENT_MONGO_DB: "paymentdb"
+  BUDGET_MONGO_DB: "budgetdb"
+
+  #Rate limiting
+  RATE_LIMIT_WINDOW_MS: "60000"
+  RATE_LIMIT_MAX: "100"
+
+  #Service names
+  API_GATEWAY_SERVICE_NAME: "api-gateway"
+  AUTH_SERVICE_NAME: "auth-service"
+  USER_SERVICE_NAME: "user-service"
+  WALLET_SERVICE_NAME: "wallet-service"
+  NOTIFICATION_SERVICE_NAME: "notification-service"
+  PAYMENT_SERVICE_NAME: "payment-service"
+  BUDGET_SERVICE_NAME: "budget-service"
