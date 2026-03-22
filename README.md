@@ -6,6 +6,30 @@
 
 ---
 
+## ✨ Core Product Features (The Business Logic)
+
+While the infrastructure is built for enterprise scale, the application layer is laser-focused on solving the biggest bottlenecks in the African gig economy: **Client Friction, Trust, and Currency Devaluation.**
+
+- **Split-Link Architecture (Zero-Friction Checkout)**
+  - **The Problem:** Clients abandon invoices when forced to download apps or create accounts.
+  - **The Tech:** We engineered a dual-token system. The API generates a public `paymentToken` for a lightweight checkout gateway. Upon successful Flutterwave webhook verification, the system mathematically locks the funds and generates a secure, private `trackingToken` sent to the client's email for milestone management.
+- **Dual-Currency FX Vault (Inflation Protection)**
+  - **The Problem:** Freelancers lose purchasing power to local currency inflation while waiting for month-long projects to close.
+  - **The Tech:** The Wallet Service implements an instant NGN-to-USD conversion engine. Utilizing strict **MongoDB ACID transactions**, freelancers can swap released Naira into a USD Vault, ensuring zero data anomalies or floating balances during the currency swap.
+- **Universal Milestone State Machine**
+  - **The Problem:** Freelance contracts range from $50 logo designs to $10,000 multi-phase web apps.
+  - **The Tech:** A dynamic MongoDB subdocument state machine (`AWAITING` -> `LOCKED` -> `IN_REVIEW` -> `RELEASED`). Standard one-off payments are automatically wrapped into a single 100% tranche, allowing the frontend to use one unified tracking dashboard regardless of contract complexity.
+- **Zero-Trust Fund Release (Email OTP)**
+  - **The Problem:** If a tracking link is public, malicious actors could approve their own milestones to steal locked funds.
+  - **The Tech:** We implemented a cryptographic Email OTP verification flow. When a guest client attempts to release funds, the API intercepts the request, generates a time-boxed 6-digit code via the Notification Service, and requires verification before executing the ledger update.
+- **Immutable Dispute & Mediation Engine**
+  - **The Problem:** Disagreements over deliverables result in stolen funds or trapped capital.
+  - **The Tech:** Clients can trigger a milestone-level freeze. The API flags the specific tranche as `DISPUTED`, halts all ledger movements for that contract, and logs the client's payload for administrative mediation.
+
+---
+
+---
+
 ## 📐 Architecture
 
 ![Swaggies Microservices Architecture](./swaggies_microservices_architecture_diagram.png)
