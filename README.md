@@ -42,7 +42,7 @@ While the infrastructure is built for enterprise scale, the application layer is
 | user-service | 3002 | 5002 | userdb |
 | wallet-service | 3003 | 5003 | walletdb |
 | notification-service | 3004 | 5004 | — |
-| payment-service | 3005 | — | paymentdb |
+| payment-service | 3005 | 5005 | paymentdb |
 | budget-service | 3006 | — | budgetdb |
 
 ---

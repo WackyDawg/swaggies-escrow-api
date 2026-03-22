@@ -99,7 +99,7 @@ resource "google_artifact_registry_repository" "Swaggies" {
       keep_count = 10
     }
   }
-
+ 
   depends_on = [google_project_service.apis]
 }
 
@@ -193,4 +193,35 @@ resource "google_service_account_iam_member" "workload_identity_binding" {
 resource "google_compute_global_address" "ingress_ip" {
   name        = "${var.app_name}-static-ip"
   description = "Static IP for Swaggies GKE Ingress"
+}
+
+# ── Budget and Billing Alerts
+resource "google_billing_budget" "budget" {
+  billing_account = var.billing_account_id
+  display_name    = "${var.app_name} Monthly Budget"
+
+  budget_filter {
+    projects = ["projects/${var.project_id}"]
+  }
+
+  amount {
+    specified_amount {
+      currency_code = "USD"
+      units         = "10"
+    }
+  }
+
+  threshold_rules {
+    threshold_percent = 0.5
+  }
+  threshold_rules {
+    threshold_percent = 0.9
+  }
+  threshold_rules {
+    threshold_percent = 1.0
+  }
+
+  all_updates_rule {
+    disable_default_iam_recipients = false
+  }
 }

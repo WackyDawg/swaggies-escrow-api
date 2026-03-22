@@ -147,6 +147,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: Swaggies-config
+            - secretRef:
+                name: notification-service-secret
           env:
             - name: PORT
               value: "3004"
@@ -344,6 +346,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: Swaggies-config
+            - secretRef:
+                name: budget-service-secret
           env:
             - name: PORT
               value: "3006"

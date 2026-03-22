@@ -46,9 +46,9 @@ const options = {
                   type: 'object',
                   properties: {
                     auth_account_id: { type: 'string', example: '69bef1f54102e6dfcf5097bf' },
-                    email: { type: 'string', example: 'kaluilucak8@gmail.com' },
-                    name: { type: 'string', example: 'Jane Doe' },
-                    swag_id: { type: 'string', example: '@jane_doet' },
+                    email: { type: 'string', example: 'jules@swaggies.co' },
+                    name: { type: 'string', example: 'Julian Nwadinobi' },
+                    swag_id: { type: 'string', example: '@jules' },
                     role: { type: 'string', example: 'user' },
                     createdAt: { type: 'string', example: '2026-03-21T19:31:01.442Z' }
                   }
@@ -57,6 +57,90 @@ const options = {
             },
             statusCode: { type: 'integer', example: 201 }
           }
+        },
+        AuthVerifyResponse: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean', example: true },
+            message: { type: 'string', example: 'User verified and wallet created successfully' },
+            data: {
+              type: 'object',
+              properties: {
+                user: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string', example: '69bef1f54102e6dfcf5097bf' },
+                    email: { type: 'string', example: 'jules@swaggies.co' },
+                    name: { type: 'string', example: 'Julian Nwadinobi' },
+                    role: { type: 'string', example: 'user' },
+                    createdAt: { type: 'string', example: '2026-03-21T19:31:01.442Z' }
+                  }
+                }
+              }
+            },
+            statusCode: { type: 'integer', example: 200 }
+          }
+        },
+        LoginResponse: {
+          type: 'object',
+          properties: {
+            message: { type: 'string', example: 'User logged in successfully' },
+            user: {
+              type: 'object',
+              properties: {
+                id: { type: 'string', example: '69bef1f54102e6dfcf5097bf' },
+                email: { type: 'string', example: 'jules@swaggies.co' },
+                name: { type: 'string', example: 'Julian Nwadinobi' },
+                role: { type: 'string', example: 'user' },
+                token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiI...' },
+                refreshToken: { type: 'string', example: 'def456...' }
+              }
+            },
+            statusCode: { type: 'integer', example: 200 }
+          }
+        },
+        UserProfileResponse: {
+          type: 'object',
+          properties: {
+            auth_account_id: { type: 'string' },
+            email: { type: 'string' },
+            name: { type: 'string' },
+            date_of_birth: { type: 'string' },
+            phone_number: { type: 'string' },
+            is_mfa_enabled: { type: 'boolean' },
+            is_kyc_verified: { type: 'boolean' },
+            mfa_type: { type: 'string' },
+            locale: { type: 'string' },
+            gender: { type: 'string' },
+            created_at_unix: { type: 'string' },
+            statusCode: { type: 'integer', example: 200 }
+          }
+        },
+        WalletBalanceResponse: {
+          type: 'object',
+          properties: {
+            code: { type: 'integer', example: 200 },
+            success: { type: 'boolean', example: true },
+            message: { type: 'string', example: 'Success' },
+            data: {
+              type: 'object',
+              properties: {
+                balance: { type: 'number', example: 500000 },
+                currency: { type: 'string', example: 'NGN' },
+                ledgerBalance: { type: 'number', example: 500000 },
+                availableBalance: { type: 'number', example: 500000 },
+                lastUpdated: { type: 'string', example: '2026-03-22T04:44:24.000Z' }
+              }
+            }
+          }
+        },
+        EscrowResponse: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean', example: true },
+            message: { type: 'string', example: 'Success' },
+            data: { type: 'object' }
+          }
         }
       }
     },
@@ -64,7 +148,7 @@ const options = {
     paths: {
       '/api/v1/auth/auth-register': {
         post: {
-          summary: 'Register a new Freelancer',
+          summary: 'Register a new user',
           tags: ['Auth Service'],
           security: [],
           requestBody: {
@@ -75,11 +159,11 @@ const options = {
                   type: 'object',
                   required: ['name', 'email', 'password', 'bvn', 'swag_id', 'dateOfBirth', 'phone_number'],
                   properties: {
-                    name: { type: 'string', example: 'Jane Doe' },
-                    email: { type: 'string', example: 'janedoe@swaggies.co' },
+                    name: { type: 'string', example: 'Julian Nwadinobi' },
+                    email: { type: 'string', example: 'jules@swaggies.co' },
                     password: { type: 'string', example: 'securepass123' },
                     bvn: { type: 'string', example: '22222222226' },
-                    swag_id: { type: 'string', example: '@jane_doe' },
+                    swag_id: { type: 'string', example: '@jules' },
                     dateOfBirth: { type: 'string', example: '1990-01-01' },
                     phone_number: { type: 'string', example: '08012345678' },
                   }
@@ -111,6 +195,7 @@ const options = {
               'application/json': {
                 schema: {
                   type: 'object',
+                  required: ['code'],
                   properties: {
                     code: { type: 'string', example: '123456' }
                   }
@@ -118,7 +203,17 @@ const options = {
               }
             }
           },
-          responses: { 200: { description: 'Verification successful' } }
+          responses: { 
+            200: { 
+              description: 'Verification successful',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/AuthVerifyResponse' }
+                }
+              }
+            },
+            400: { $ref: '#/components/schemas/Error' }
+          }
         }
       },
       '/api/v1/auth/auth-login': {
@@ -132,6 +227,7 @@ const options = {
               'application/json': {
                 schema: {
                   type: 'object',
+                  required: ['email', 'password'],
                   properties: {
                     email: { type: 'string', example: 'jules@swaggies.co' },
                     password: { type: 'string', example: 'securepass123' }
@@ -140,7 +236,17 @@ const options = {
               }
             }
           },
-          responses: { 200: { description: 'Login successful' } }
+          responses: { 
+            200: { 
+              description: 'Login successful',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/LoginResponse' }
+                }
+              }
+            },
+            401: { $ref: '#/components/schemas/Error' }
+          }
         }
       },
 
@@ -149,7 +255,16 @@ const options = {
         get: {
           summary: 'Get current user profile',
           tags: ['User Service'],
-          responses: { 200: { description: 'Profile data retrieved' } }
+          responses: { 
+            200: { 
+              description: 'Profile data retrieved',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/UserProfileResponse' }
+                }
+              }
+            } 
+          }
         }
       },
 
@@ -161,7 +276,16 @@ const options = {
           parameters: [
             { name: 'accountNumber', in: 'path', required: true, schema: { type: 'string' } }
           ],
-          responses: { 200: { description: 'Balance retrieved' } }
+          responses: { 
+            200: { 
+              description: 'Balance retrieved',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/WalletBalanceResponse' }
+                }
+              }
+            } 
+          }
         }
       },
       '/api/v1/wallet/escrow/create': {
@@ -174,26 +298,27 @@ const options = {
               'application/json': {
                 schema: {
                   type: 'object',
+                  required: ['freelancerId', 'amount', 'title'],
                   properties: {
-                    clientEmail: { type: 'string', example: 'client@company.com' },
-                    amount: { type: 'number', example: 150000 },
+                    freelancerId: { type: 'string', example: '69bef1f54102e6dfcf5097bf' },
+                    amount: { type: 'number', example: 1500 },
                     title: { type: 'string', example: 'Web App Development' },
-                    milestones: {
-                      type: 'array',
-                      items: {
-                        type: 'object',
-                        properties: {
-                          title: { type: 'string', example: 'Phase 1' },
-                          amount: { type: 'number', example: 75000 }
-                        }
-                      }
-                    }
+                    description: { type: 'string', example: 'Build a premium microservices-based app' }
                   }
                 }
               }
             }
           },
-          responses: { 201: { description: 'Escrow created' } }
+          responses: { 
+            201: { 
+              description: 'Escrow created',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/EscrowResponse' }
+                }
+              }
+            } 
+          }
         }
       },
       '/api/v1/wallet/escrow/invoice/generate': {
@@ -206,16 +331,50 @@ const options = {
               'application/json': {
                 schema: {
                   type: 'object',
+                  required: ['clientEmail', 'amount', 'title'],
                   properties: {
                     clientEmail: { type: 'string', example: 'client@company.com' },
-                    amount: { type: 'number', example: 150000 },
+                    amount: { type: 'number', example: 1500 },
                     title: { type: 'string', example: 'SEO Optimization' },
+                    description: { type: 'string', example: 'Monthly SEO maintenance' },
+                    milestones: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          title: { type: 'string', example: 'Phase 1' },
+                          amount: { type: 'number', example: 750 }
+                        }
+                      }
+                    }
                   }
                 }
               }
             }
           },
-          responses: { 201: { description: 'Success' } }
+          responses: { 
+            201: { 
+              description: 'Invoice link generated',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean' },
+                      message: { type: 'string' },
+                      data: {
+                        type: 'object',
+                        properties: {
+                          invoiceDetails: { type: 'object' },
+                          paymentLink: { type: 'string' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            } 
+          }
         }
       },
       '/api/v1/wallet/escrow/invoice/{token}': {
@@ -224,7 +383,40 @@ const options = {
           tags: ['Escrow Service'],
           security: [],
           parameters: [{ name: 'token', in: 'path', required: true, schema: { type: 'string' } }],
-          responses: { 200: { description: 'Invoice data retrieved' } }
+          responses: { 
+            200: { 
+              description: 'Invoice data retrieved',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean' },
+                      data: {
+                        type: 'object',
+                        properties: {
+                          title: { type: 'string' },
+                          description: { type: 'string' },
+                          amountInNaira: { type: 'number' },
+                          status: { type: 'string' },
+                          isTrackingLink: { type: 'boolean' },
+                          freelancer: {
+                            type: 'object',
+                            properties: {
+                              name: { type: 'string' },
+                              email: { type: 'string' }
+                            }
+                          },
+                          clientEmail: { type: 'string' },
+                          milestones: { type: 'array', items: { type: 'object' } }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            } 
+          }
         }
       },
       '/api/v1/wallet/escrow/tracking/{token}': {
@@ -233,7 +425,40 @@ const options = {
           tags: ['Escrow Service'],
           security: [],
           parameters: [{ name: 'token', in: 'path', required: true, schema: { type: 'string' } }],
-          responses: { 200: { description: 'Tracking data retrieved' } }
+          responses: { 
+            200: { 
+              description: 'Tracking data retrieved',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean' },
+                      data: {
+                        type: 'object',
+                        properties: {
+                          title: { type: 'string' },
+                          description: { type: 'string' },
+                          amountInNaira: { type: 'number' },
+                          status: { type: 'string' },
+                          isTrackingLink: { type: 'boolean' },
+                          freelancer: {
+                            type: 'object',
+                            properties: {
+                              name: { type: 'string' },
+                              email: { type: 'string' }
+                            }
+                          },
+                          clientEmail: { type: 'string' },
+                          milestones: { type: 'array', items: { type: 'object' } }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            } 
+          }
         }
       },
       '/api/v1/wallet/escrow/request-approval-code/{token}': {
@@ -256,7 +481,7 @@ const options = {
           ],
           requestBody: {
             required: true,
-            content: { 'application/json': { schema: { type: 'object', properties: { approvalCode: { type: 'string', example: '123456' } } } } }
+            content: { 'application/json': { schema: { type: 'object', required: ['approvalCode'], properties: { approvalCode: { type: 'string', example: '123456' } } } } }
           },
           responses: { 200: { description: 'Milestone released' } }
         }
@@ -272,7 +497,7 @@ const options = {
           ],
           requestBody: {
             required: true,
-            content: { 'application/json': { schema: { type: 'object', properties: { reason: { type: 'string', example: 'Code quality does not meet standards' } } } } }
+            content: { 'application/json': { schema: { type: 'object', required: ['reason'], properties: { reason: { type: 'string', example: 'Code quality does not meet standards' } } } } }
           },
           responses: { 200: { description: 'Milestone disputed' } }
         }
@@ -283,9 +508,32 @@ const options = {
           tags: ['Wallet Service'],
           requestBody: {
             required: true,
-            content: { 'application/json': { schema: { type: 'object', properties: { amountInNgn: { type: 'number', example: 50000 } } } } }
+            content: { 'application/json': { schema: { type: 'object', required: ['amountInNgn'], properties: { amountInNgn: { type: 'number', example: 50000 } } } } }
           },
-          responses: { 200: { description: 'Conversion successful' } }
+          responses: { 
+            200: { 
+              description: 'Conversion successful',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean' },
+                      message: { type: 'string' },
+                      data: {
+                        type: 'object',
+                        properties: {
+                          ngnBalance: { type: 'string' },
+                          usdBalance: { type: 'string' },
+                          exchangeRate: { type: 'number' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            } 
+          }
         }
       },
 

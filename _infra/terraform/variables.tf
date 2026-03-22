@@ -1,3 +1,8 @@
+variable "billing_account_id" {
+  description = "The ID of the billing account to associate with the budget"
+  type        = string
+}
+
 variable "project_id" {
   description = "GCP Project ID"
   type        = string
