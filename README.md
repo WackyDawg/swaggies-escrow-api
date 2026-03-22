@@ -8,34 +8,7 @@
 
 ## 📐 Architecture
 
-```
-                          ┌──────────────────┐
-  Mobile / Web Client ───▶│   Cloud Ingress   │ (TLS terminated)
-                          └────────┬─────────┘
-                                   │
-                          ┌────────▼─────────┐
-                          │   API Gateway     │ :3000
-                          │  (Express, JWT)   │
-                          └──┬──┬──┬──┬──┬───┘
-                      HTTP   │  │  │  │  │ HTTP
-          ┌───────────────────┘  │  │  │  └──────────────────┐
-          │             ┌────────┘  │  └────────┐            │
-          ▼             ▼           ▼            ▼            ▼
-   ┌────────────┐ ┌──────────┐ ┌────────┐ ┌──────────┐ ┌──────────┐
-   │auth-service│ │user-svc  │ │wallet  │ │payment   │ │budget    │
-   │  :3001     │ │ :3002    │ │:3003   │ │:3005     │ │:3006     │
-   └──────┬─────┘ └─────┬────┘ └───┬────┘ └──────────┘ └──────────┘
-          │   gRPC       │          │  gRPC
-          └──────────────┤          └────────────────┐
-                    ┌────▼─────────────────────┐     │
-                    │    notification-service   │◀────┘
-                    │         :3004 / :5004     │
-                    └───────────────────────────┘
-
-  All services ──▶ MongoDB (per-service DB)
-  All services ──▶ Redis (rate limiting / caching)
-  All services ──▶ Prometheus :9090 ──▶ Grafana :3100
-```
+![Swaggies Microservices Architecture](./swaggies_microservices_architecture_diagram.png)
 
 **Services:**
 | Service | HTTP Port | gRPC Port | Database |

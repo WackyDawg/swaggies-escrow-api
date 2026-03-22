@@ -189,7 +189,7 @@ resource "google_service_account_iam_member" "workload_identity_binding" {
   member             = "serviceAccount:${var.project_id}.svc.id.goog[Swaggies/Swaggies-sa]"
 }
 
-# ── Static IP for Ingress ─────────────────────────────────────────────
+# ── Static IP for Ingress 
 resource "google_compute_global_address" "ingress_ip" {
   name        = "${var.app_name}-static-ip"
   description = "Static IP for Swaggies GKE Ingress"
