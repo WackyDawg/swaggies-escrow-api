@@ -1,6 +1,6 @@
 # Swaggies Backend — Enterprise Microservices
 
-[![Cloud Build Status](https://storage.googleapis.com/cloudbuild-badges/YOUR_GCP_PROJECT_ID/Swaggies/main.svg)](https://console.cloud.google.com/cloud-build)
+[![Cloud Build Status](https://storage.googleapis.com/cloudbuild-badges/swaggies-escrow/pocketapp-backend/main.svg)](https://console.cloud.google.com/cloud-build?project=swaggies-escrow)
 
 > **Highly secure, scalable Node.js microservices backend for a fintech application — deployed on Google Cloud Platform.**
 
