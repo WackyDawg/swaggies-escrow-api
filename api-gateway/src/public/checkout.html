@@ -801,14 +801,12 @@ async function loadInvoice() {
   
   try {
     let apiUrl = '';
-    // Use the specific routes
     if (paymentToken) {
-      apiUrl = `http://localhost:3000/api/v1/wallet/escrow/invoice/${paymentToken}`;
+      apiUrl = `/api/v1/wallet/escrow/invoice/${paymentToken}`;
     } else if (trackingToken) {
-      apiUrl = `http://localhost:3000/api/v1/wallet/escrow/tracking/${trackingToken}`;
+      apiUrl = `/api/v1/wallet/escrow/tracking/${trackingToken}`;
     } else if (legacyToken) {
-      // Compatibility fallback
-      apiUrl = `http://localhost:3000/api/v1/wallet/escrow/invoice/${legacyToken}`;
+      apiUrl = `/api/v1/wallet/escrow/invoice/${legacyToken}`;
     }
 
     if (!apiUrl) {
@@ -924,7 +922,7 @@ async function approveTranche() {
 
   try {
       const releaseToken = trackingToken || legacyToken;
-      const res = await fetch(`http://localhost:3000/api/v1/wallet/escrow/guest-release/${releaseToken}/milestones/${t.id}`, {
+      const res = await fetch(`/api/v1/wallet/escrow/guest-release/${releaseToken}/milestones/${t.id}`, {
           method: 'POST'
       });
       const result = await res.json();

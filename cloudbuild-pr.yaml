@@ -1,13 +1,7 @@
-# ============================================================
-# Cloud Build — PR Validation Pipeline
-# Triggered on pull requests to 'main' or 'develop'
-# Does NOT push to registry or deploy — tests only
-# ============================================================
-
 substitutions:
-  _GCP_PROJECT_ID: "YOUR_GCP_PROJECT_ID"
+  _GCP_PROJECT_ID: "swaggies-escrow"
   _AR_HOSTNAME: "us-central1-docker.pkg.dev"
-  _AR_REPO: "Swaggies"
+  _AR_REPO: "swaggies"
 
 options:
   logging: CLOUD_LOGGING_ONLY
@@ -24,7 +18,7 @@ steps:
     args:
       - build
       - --file=api-gateway/Dockerfile
-      - --tag=Swaggies/api-gateway:pr-$SHORT_SHA
+      - --tag=$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/api-gateway:pr-latest
       - ./api-gateway
 
   - name: "gcr.io/cloud-builders/docker"
@@ -33,7 +27,7 @@ steps:
     args:
       - build
       - --file=services/auth-service/Dockerfile
-      - --tag=Swaggies/auth-service:pr-$SHORT_SHA
+      - --tag=$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/auth-service:pr-latest
       - .
 
   - name: "gcr.io/cloud-builders/docker"
@@ -42,12 +36,12 @@ steps:
     args:
       - build
       - --file=services/user-service/Dockerfile
-      - --tag=Swaggies/user-service:pr-$SHORT_SHA
+      - --tag=$_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/user-service:pr-latest
       - .
 
   - name: "node:20-alpine"
     id: "test-auth-service"
-    waitFor: ["-"] # run immediately (no Docker image needed for unit tests)
+    waitFor: ["-"]
     dir: "services/auth-service"
     entrypoint: sh
     args:
@@ -75,7 +69,7 @@ steps:
       - --exit-code=1
       - --severity=CRITICAL,HIGH
       - --no-progress
-      - Swaggies/api-gateway:pr-$SHORT_SHA
+      - $_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/api-gateway:pr-latest
 
   - name: "aquasec/trivy:latest"
     id: "scan-auth-service"
@@ -85,7 +79,7 @@ steps:
       - --exit-code=1
       - --severity=CRITICAL,HIGH
       - --no-progress
-      - Swaggies/auth-service:pr-$SHORT_SHA
+      - $_AR_HOSTNAME/$_GCP_PROJECT_ID/$_AR_REPO/auth-service:pr-latest
 
   - name: "bitnami/kubectl:latest"
     id: "validate-manifests"
@@ -95,8 +89,8 @@ steps:
       - "-c"
       - |
         for f in k8s/*.yaml; do
-          echo "Validating $f..."
-          kubectl apply --dry-run=client -f "$f" 2>&1 || true
+          echo "Validating $$f..."
+          kubectl apply --dry-run=client -f "$$f" 2>&1 || true
         done
         echo "Manifest validation complete"
 

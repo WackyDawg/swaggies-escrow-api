@@ -217,7 +217,7 @@ async function loadInvoice() {
       return;
     }
 
-    const res = await fetch(`http://localhost:3000/api/v1/wallet/escrow/invoice/${paymentToken}`);
+    const res = await fetch(`/api/v1/wallet/escrow/invoice/${paymentToken}`);
     const data = await res.json();
     
     if (!data.success) throw new Error(data.message || 'Invalid link');

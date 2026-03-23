@@ -1,8 +1,8 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: Swaggies-config
-  namespace: Swaggies
+  name: swaggies-config
+  namespace: swaggies
 data:
   NODE_ENV: "production"
 
@@ -20,6 +20,8 @@ data:
   USER_GRPC_PORT: "5002"
   WALLET_GRPC_PORT: "5003"
   NOTIFICATION_GRPC_PORT: "5004"
+  PAYMENT_GRPC_PORT: "5005"
+  BUDGET_GRPC_PORT: "5006"
 
   #Inter-service URLs (Kubernetes DNS)
   AUTH_SERVICE_URL: "http://auth-service:3001"
@@ -34,6 +36,8 @@ data:
   USER_GRPC_HOST: "user-service:5002"
   WALLET_GRPC_HOST: "wallet-service:5003"
   NOTIFICATION_GRPC_HOST: "notification-service:5004"
+  PAYMENT_GRPC_HOST: "payment-service:5005"
+  BUDGET_GRPC_HOST: "budget-service:5006"
 
   #MongoDB URIs
   # These point to MongoDB Atlas or Cloud SQL Proxy in production
@@ -56,3 +60,5 @@ data:
   NOTIFICATION_SERVICE_NAME: "notification-service"
   PAYMENT_SERVICE_NAME: "payment-service"
   BUDGET_SERVICE_NAME: "budget-service"
+  MAIL_PROVIDER: "resend"
+  FRONTEND_URL: "http://104.197.58.238:3000"

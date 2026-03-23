@@ -13,7 +13,7 @@ terraform {
 
   # Remote state — use GCS bucket for team collaboration
   backend "gcs" {
-    bucket = "YOUR_GCP_PROJECT_ID-terraform-state"  # ← Replace
+    bucket = "swaggies-escrow-terraform-state"
     prefix = "Swaggies/terraform"
   }
 }
@@ -28,13 +28,13 @@ provider "google-beta" {
   region  = var.region
 }
 
-#Enable Required GCP APIs
+# Enable Required GCP APIs
 resource "google_project_service" "apis" {
   for_each = toset([
-    "container.googleapis.com",          # GKE
-    "artifactregistry.googleapis.com",   # Artifact Registry
-    "secretmanager.googleapis.com",      # Secret Manager
-    "cloudbuild.googleapis.com",         # Cloud Build
+    "container.googleapis.com",
+    "artifactregistry.googleapis.com",
+    "secretmanager.googleapis.com",
+    "cloudbuild.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "iam.googleapis.com",
     "logging.googleapis.com",
@@ -45,7 +45,7 @@ resource "google_project_service" "apis" {
   disable_on_destroy = false
 }
 
-#VPC Network
+# VPC Network
 resource "google_compute_network" "vpc" {
   name                    = "${var.app_name}-vpc"
   auto_create_subnetworks = false
@@ -69,7 +69,7 @@ resource "google_compute_subnetwork" "gke_subnet" {
   }
 }
 
-#Cloud NAT (for egress from private nodes)
+# Cloud NAT (for egress from private nodes)
 resource "google_compute_router" "router" {
   name    = "${var.app_name}-router"
   region  = var.region
@@ -84,7 +84,7 @@ resource "google_compute_router_nat" "nat" {
   source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
 }
 
-#Artifact Registry Repository
+# Artifact Registry Repository
 resource "google_artifact_registry_repository" "Swaggies" {
   provider      = google-beta
   location      = var.region
@@ -99,11 +99,11 @@ resource "google_artifact_registry_repository" "Swaggies" {
       keep_count = 10
     }
   }
- 
+
   depends_on = [google_project_service.apis]
 }
 
-#GCP Service Account for Workload Identity
+# GCP Service Account for Workload Identity
 resource "google_service_account" "Swaggies_sa" {
   account_id   = "${var.app_name}-sa"
   display_name = "Swaggies Workload Identity SA"
@@ -127,7 +127,7 @@ resource "google_project_iam_member" "monitoring_access" {
   member  = "serviceAccount:${google_service_account.Swaggies_sa.email}"
 }
 
-#GKE Autopilot Cluster
+# GKE Autopilot Cluster
 resource "google_container_cluster" "Swaggies" {
   provider = google-beta
   name     = var.cluster_name
@@ -148,12 +148,12 @@ resource "google_container_cluster" "Swaggies" {
     workload_pool = "${var.project_id}.svc.id.goog"
   }
 
-  # Enable Binary Authorization (block non-verified images)
+  # Enable Binary Authorization
   binary_authorization {
     evaluation_mode = "PROJECT_SINGLETON_POLICY_ENFORCE"
   }
 
-  # Enable master authorized networks (restrict kubectl access)
+  # Restrict kubectl access
   master_authorized_networks_config {
     dynamic "cidr_blocks" {
       for_each = var.authorized_networks
@@ -173,8 +173,8 @@ resource "google_container_cluster" "Swaggies" {
 
   maintenance_policy {
     recurring_window {
-      start_time = "2024-01-01T02:00:00Z"
-      end_time   = "2024-01-01T06:00:00Z"
+      start_time = "2024-01-01T00:00:00Z"
+      end_time   = "2024-01-02T00:00:00Z"
       recurrence = "FREQ=WEEKLY;BYDAY=SA"
     }
   }
@@ -182,46 +182,15 @@ resource "google_container_cluster" "Swaggies" {
   depends_on = [google_project_service.apis]
 }
 
-#Workload Identity Binding
+# Workload Identity Binding — FIX: lowercase namespace and SA name
 resource "google_service_account_iam_member" "workload_identity_binding" {
   service_account_id = google_service_account.Swaggies_sa.name
   role               = "roles/iam.workloadIdentityUser"
-  member             = "serviceAccount:${var.project_id}.svc.id.goog[Swaggies/Swaggies-sa]"
+  member             = "serviceAccount:${var.project_id}.svc.id.goog[swaggies/swaggies-sa]"
 }
 
-# ── Static IP for Ingress 
+# Static IP for Ingress
 resource "google_compute_global_address" "ingress_ip" {
   name        = "${var.app_name}-static-ip"
   description = "Static IP for Swaggies GKE Ingress"
-}
-
-# ── Budget and Billing Alerts
-resource "google_billing_budget" "budget" {
-  billing_account = var.billing_account_id
-  display_name    = "${var.app_name} Monthly Budget"
-
-  budget_filter {
-    projects = ["projects/${var.project_id}"]
-  }
-
-  amount {
-    specified_amount {
-      currency_code = "USD"
-      units         = "10"
-    }
-  }
-
-  threshold_rules {
-    threshold_percent = 0.5
-  }
-  threshold_rules {
-    threshold_percent = 0.9
-  }
-  threshold_rules {
-    threshold_percent = 1.0
-  }
-
-  all_updates_rule {
-    disable_default_iam_recipients = false
-  }
 }

@@ -1,4 +1,4 @@
-FROM node:20-alpine AS deps
+FROM node:20-slim AS deps
 WORKDIR /app
 
 COPY shared ./shared
@@ -8,10 +8,10 @@ RUN sed -i 's|"@pocket/shared": "file:../../shared"|"@pocket/shared": "file:./sh
     npm cache clean --force && \
     mkdir -p /app/node_modules
 
-FROM node:20-alpine AS runtime
+FROM node:20-slim AS runtime
 WORKDIR /app
 
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN groupadd -r appgroup && useradd -r -g appgroup appuser
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/shared ./shared
@@ -28,6 +28,6 @@ USER appuser
 EXPOSE 3006
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
-  CMD wget -qO- http://localhost:3006/health || exit 1
+  CMD node -e "require('http').get('http://localhost:3006/health', (res) => process.exit(res.statusCode===200?0:1)).on('error', () => process.exit(1))"
 
 CMD ["node", "server.js"]

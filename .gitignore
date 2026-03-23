@@ -32,3 +32,28 @@ Thumbs.db
 coverage/
 .nyc_output/
 *.dockerenv
+
+# Terraform
+.terraform/
+terraform.tfvars
+terraform.tfstate
+terraform.tfstate.backup
+
+# Local Development
+docker-compose.override.yml
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Kubernetes
+kubeconfig
+*.kubeconfig
+
+# Logs & temp
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+tmp/
+temp/

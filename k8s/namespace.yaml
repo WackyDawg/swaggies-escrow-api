@@ -1,17 +1,17 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: Swaggies
+  name: swaggies
   labels:
-    name: Swaggies
+    name: swaggies
     environment: production
     managed-by: kubectl
 ---
 apiVersion: v1
 kind: ResourceQuota
 metadata:
-  name: Swaggies-resource-quota
-  namespace: Swaggies
+  name: swaggies-resource-quota
+  namespace: swaggies
 spec:
   hard:
     requests.cpu: "8"
@@ -24,8 +24,8 @@ spec:
 apiVersion: v1
 kind: LimitRange
 metadata:
-  name: Swaggies-limits
-  namespace: Swaggies
+  name: swaggies-limits
+  namespace: swaggies
 spec:
   limits:
     - default:

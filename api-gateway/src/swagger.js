@@ -15,7 +15,11 @@ const options = {
     servers: [
       {
         url: 'http://localhost:3000',
-        description: 'Swaggies API Gateway',
+        description: 'Local Development Gateway',
+      },
+      {
+        url: 'http://104.197.58.238:3000',
+        description: 'GKE Reserved Static IP Gateway',
       },
     ],
     components: {

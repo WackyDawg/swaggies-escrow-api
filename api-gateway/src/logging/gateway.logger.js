@@ -1,6 +1,7 @@
 import winston from 'winston';
 import expressWinston from 'express-winston';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -27,6 +28,8 @@ const consoleFormat = winston.format.combine(
 
 const logsDir = path.join(__dirname, '../logs');
 
+fs.mkdirSync(logsDir, { recursive: true });
+
 export const appLogger = winston.createLogger({
     level: process.env.LOG_LEVEL || 'info',
     format: logFormat,
@@ -36,7 +39,6 @@ export const appLogger = winston.createLogger({
             format: consoleFormat,
             level: process.env.NODE_ENV === 'production' ? 'error' : 'debug'
         }),
-
         new winston.transports.File({
             filename: path.join(logsDir, 'error.log'),
             level: 'error',
@@ -61,14 +63,12 @@ export const httpLogger = expressWinston.logger({
     ignoreRoute: (req, res) => {
         return req.url === '/health' || req.url === '/ping';
     },
-
     skip: (req, res) => {
         if (process.env.NODE_ENV === 'production') {
             return res.statusCode < 400;
         }
         return false;
     },
-
     statusLevels: true,
     level: (req, res) => {
         let level = 'info';

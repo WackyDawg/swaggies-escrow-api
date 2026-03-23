@@ -490,7 +490,7 @@ async function loadInvoice() {
         return;
     }
 
-    const res = await fetch(`http://localhost:3000/api/v1/wallet/escrow/tracking/${trackingToken}`);
+    const res = await fetch(`/api/v1/wallet/escrow/tracking/${trackingToken}`);
     const data = await res.json();
     
     if (!data.success) throw new Error(data.message || 'Invalid link');
@@ -548,7 +548,7 @@ async function requestApprovalCode() {
   document.getElementById('masked-email-text').textContent = `Sending a 6-digit code to ${maskEmail(invoiceData.clientEmail)}...`;
 
   try {
-      const res = await fetch(`http://localhost:3000/api/v1/wallet/escrow/request-approval-code/${trackingToken}`, {
+      const res = await fetch(`/api/v1/wallet/escrow/request-approval-code/${trackingToken}`, {
           method: 'POST'
       });
       const result = await res.json();
@@ -643,7 +643,7 @@ async function resendOtp() {
   if (!btn.classList.contains('active')) return;
   
   try {
-      const res = await fetch(`http://localhost:3000/api/v1/wallet/escrow/request-approval-code/${trackingToken}`, {
+      const res = await fetch(`/api/v1/wallet/escrow/request-approval-code/${trackingToken}`, {
           method: 'POST'
       });
       const result = await res.json();
@@ -669,7 +669,7 @@ async function verifyCode() {
   verifyBtn.textContent = 'Verifying...';
 
   try {
-      const res = await fetch(`http://localhost:3000/api/v1/wallet/escrow/guest-release/${trackingToken}/milestones/${t.id}`, {
+      const res = await fetch(`/api/v1/wallet/escrow/guest-release/${trackingToken}/milestones/${t.id}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ approvalCode: code })
@@ -720,7 +720,7 @@ async function approveTranche() {
   if (!t) return;
 
   try {
-      const res = await fetch(`http://localhost:3000/api/v1/wallet/escrow/guest-release/${trackingToken}/milestones/${t.id}`, {
+      const res = await fetch(`/api/v1/wallet/escrow/guest-release/${trackingToken}/milestones/${t.id}`, {
           method: 'POST'
       });
       const result = await res.json();
@@ -823,7 +823,7 @@ async function rejectSubmission() {
   if (!t) return;
 
   try {
-    const res = await fetch(`http://localhost:3000/api/v1/wallet/escrow/guest-reject/${trackingToken}/milestones/${t.id}`, {
+    const res = await fetch(`/api/v1/wallet/escrow/guest-reject/${trackingToken}/milestones/${t.id}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reason })

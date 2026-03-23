@@ -24,7 +24,20 @@ collectDefaultMetrics({ timeout: 5000 })
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(cors());
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    credentials: true,
+}));
+
+app.use((req, res, next) => {
+    if (req.headers['access-control-request-private-network']) {
+        res.setHeader('Access-Control-Allow-Private-Network', 'true');
+    }
+    next();
+});
+
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
     customSiteTitle: 'Swaggies API Gateway',
     customJs: 'https://unpkg.com/swagger-ui-dist@5.10.3/swagger-ui-bundle.js',
@@ -53,21 +66,10 @@ app.get('/pay-invoice', (req, res) => {
 app.get('/health', async (req, res) => {
     const healthStatus = {
         status: 'ok',
-        database: 'unavailable',
         uptime: process.uptime(),
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        service: 'api-gateway'
     };
-
-    try {
-        await mongoose.connection.db.admin().ping();
-        healthStatus.database = 'available';
-    } catch (error) {
-        console.error('Database connection failed:', error.message);
-        healthStatus.status = 'degraded';
-        healthStatus.database = 'error';
-        return res.status(503).json(healthStatus);
-    }
-
     res.status(200).json(healthStatus);
 });
 

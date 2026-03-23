@@ -1,6 +1,7 @@
 import winston from 'winston';
 import expressWinston from 'express-winston';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -26,6 +27,8 @@ const consoleFormat = winston.format.combine(
 );
 
 const logsDir = path.join(__dirname, '../logs');
+
+fs.mkdirSync(logsDir, { recursive: true });
 
 export const appLogger = winston.createLogger({
     level: process.env.LOG_LEVEL || 'info',
