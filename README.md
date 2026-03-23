@@ -1,4 +1,4 @@
-# Swaggies Backend Zero-Friction Escrow, FX Vault & Utility API
+# Swaggies Backend - Zero-Friction Escrow, FX Vault & Utility API
 
 [![Cloud Build Status](https://storage.googleapis.com/cloudbuild-badges/swaggies-escrow/pocketapp-backend/main.svg)](https://console.cloud.google.com/cloud-build?project=swaggies-escrow)
 
