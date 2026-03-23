@@ -60,8 +60,8 @@ While the infrastructure is built for enterprise scale, the application layer is
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/your-org/Swaggies-backend.git
-cd Swaggies-backend
+git clone https://github.com/WackyDawg/swaggies-escrow-api.git
+cd swaggies-escrow-api
 
 # 2. Create environment files
 cp .env.example .env
