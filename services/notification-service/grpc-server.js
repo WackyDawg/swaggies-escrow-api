@@ -43,4 +43,5 @@ const PORT = process.env.GRPC_PORT || 5004;
 server.bindAsync(`0.0.0.0:${PORT}`, grpc.ServerCredentials.createInsecure(), (err, port) => {
   if (err) throw err;
   console.log(`[Notification-Service] gRPC server running on port ${port}`);
+  server.start();
 });

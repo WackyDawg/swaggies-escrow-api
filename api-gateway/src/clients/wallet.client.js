@@ -225,12 +225,15 @@ export class walletClient {
         }
     }
 
-    async handleFlwWebhook(webhookData) {
+    async handleFlwWebhook(webhookData, signature) {
         try {
-            const response = await axios.post(`${WALLET_SERVICE_URL}/api/v1/wallet/webhooks-flutterwave`, webhookData);
+            const response = await axios.post(`${WALLET_SERVICE_URL}/api/v1/wallet/webhooks-flutterwave`, webhookData, {
+                headers: {
+                    'verif-hash': signature || ''
+                }
+            });
             const statusCode = response.data?.statusCode ?? response.status;
             
-            // Safe handling if data is just a string (not an object)
             if (typeof response.data !== 'object' || response.data === null) {
                 return { message: response.data, statusCode };
             }

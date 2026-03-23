@@ -17,7 +17,10 @@ export const handleFlutterwaveWebhook = async (req, res) => {
 
         res.status(200).json({ message: 'Webhook Received' });
 
-        const payload = req.body;
+        let payload = req.body;
+        if (payload.event && payload.data) {
+            payload = payload.data;
+        }
         
         if (payload.status === 'successful') {
             

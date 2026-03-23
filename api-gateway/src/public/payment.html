@@ -264,9 +264,11 @@ function handlePayment() {
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Opening payment...';
   
+  const currentTxRef = 'ESC_GUEST_' + paymentToken + '_' + Date.now();
+  
   FlutterwaveCheckout({
     public_key: 'FLWPUBK_TEST-3028d2054d6e2065b2c47a7e1361f801-X',
-    tx_ref: 'ESC_GUEST_' + paymentToken + '_' + Date.now(),
+    tx_ref: currentTxRef,
     amount: invoiceData.amountInNaira,
     currency: 'NGN',
     payment_options: 'card, banktransfer',
@@ -274,7 +276,7 @@ function handlePayment() {
     customizations: { title: 'Swaggies Escrow', description: invoiceData.title },
     callback: function (data) {
         console.log("Payment successful!", data);
-        onPaymentSuccess();
+        onPaymentSuccess(data.tx_ref || currentTxRef);
     },
     onclose: () => {
       btn.disabled = false;
@@ -283,8 +285,38 @@ function handlePayment() {
   });
 }
 
-function onPaymentSuccess() {
+async function onPaymentSuccess(txRef) {
   showToast('Funds locked \u2713');
+  
+  if (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') {
+     console.log('Local environment detected, mocking webhook...');
+     try {
+         await fetch('/api/v1/webhooks/flw-webhook', {
+             method: 'POST',
+             headers: {
+                 'Content-Type': 'application/json',
+                 'verif-hash': 'SwaggiesHackathon2026'
+             },
+             body: JSON.stringify({
+                 event: 'charge.completed',
+                 status: 'successful',
+                 txRef: txRef,
+                 flwRef: 'MOCK_FLW_REF_' + Date.now(),
+                 amount: invoiceData.amountInNaira,
+                 currency: 'NGN',
+                 id: Math.floor(Math.random() * 100000),
+                 customer: {
+                     email: invoiceData.clientEmail,
+                     fullName: 'Guest Client'
+                 }
+             })
+         });
+         console.log('Mock webhook sent.');
+     } catch (e) {
+         console.error('Failed to mock webhook:', e);
+     }
+  }
+
   setTimeout(() => {
       loadInvoice(); // This will now trigger the restricted state
   }, 2000); 

@@ -218,6 +218,7 @@ export class EscrowService {
 
             try {
                 const freelancerId = String(escrow.freelancerId);
+                const startTime = Date.now();
                 const freelancer = await new Promise((resolve, reject) => {
                     const deadline = new Date();
                     deadline.setSeconds(deadline.getSeconds() + 5);

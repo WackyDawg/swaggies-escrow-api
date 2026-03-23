@@ -32,7 +32,7 @@ const escrowSchema = new mongoose.Schema({
         unique: true, 
         index: true 
     },
-    trackingToken: { type: String, unique: true, sparse: true, index: true, default: null },
+    trackingToken: { type: String, unique: true, sparse: true, index: true },
     approvalCode: { type: String, sparse: true },
     title: { type: String, required: true },
     description: { type: String, required: true },

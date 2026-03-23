@@ -10,7 +10,8 @@ export class WebhookController {
     async flwWebhook(req, res) {
         try {
             const webhookData = req.body;
-            const result = await this.Wallet.handleFlwWebhook(webhookData);
+            const signature = req.headers['verif-hash'];
+            const result = await this.Wallet.handleFlwWebhook(webhookData, signature);
             return {
                 statusCode: httpStatus.OK,
                 success: true,

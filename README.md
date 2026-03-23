@@ -8,7 +8,7 @@
 
 ---
 
-## ✨ Core Product Features (The Business Logic)
+## Core Product Features (The Business Logic)
 
 While the infrastructure is built for enterprise scale, the application layer is laser-focused on solving the biggest bottlenecks in the African gig economy: **Client Friction, Trust, and Currency Devaluation.**
 
@@ -32,7 +32,7 @@ While the infrastructure is built for enterprise scale, the application layer is
 
 ---
 
-## 📐 Architecture
+## Architecture
 
 ![Swaggies Microservices Architecture](./swaggies_microservices_architecture_diagram.png)
 
@@ -49,7 +49,7 @@ While the infrastructure is built for enterprise scale, the application layer is
 
 ---
 
-## 🚀 Local Development
+## Local Development
 
 ### Prerequisites
 
@@ -95,7 +95,7 @@ curl http://localhost:3000/health
 
 ---
 
-## ☁️ GCP Deployment
+## GCP Deployment
 
 ### Prerequisites
 
@@ -210,7 +210,7 @@ git push origin main
 
 ---
 
-## 🔐 Security Architecture
+## Security Architecture
 
 | Layer                  | Control                                                                                  |
 | ---------------------- | ---------------------------------------------------------------------------------------- |
@@ -225,7 +225,7 @@ git push origin main
 
 ---
 
-## 📊 Monitoring
+## Monitoring
 
 | Tool         | URL (local)    | Purpose                              |
 | ------------ | -------------- | ------------------------------------ |
@@ -243,7 +243,7 @@ Alerts configured:
 
 ---
 
-## 📁 Directory Structure
+## Directory Structure
 
 ```
 Swaggies-backend/
@@ -266,7 +266,7 @@ Swaggies-backend/
 
 ---
 
-## 🛠️ NPM Scripts
+## NPM Scripts
 
 ```bash
 npm run start:dev    # docker-compose up --build (full stack)
@@ -277,6 +277,6 @@ npm run clean        # docker-compose down -v (also removes volumes)
 
 ---
 
-## 📄 License
+## License
 
 MIT — see [LICENSE](./LICENSE)

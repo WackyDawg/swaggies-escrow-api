@@ -1,0 +1,15 @@
+{
+  "event": "charge.completed",
+  "data": {
+    "id": 999999999,
+    "tx_ref": "swg-1773966393643-0bb18349",
+    "flw_ref": "FLW-MOCK-FUNDING",
+    "amount": 50000,
+    "currency": "NGN",
+    "status": "successful",
+    "customer": {
+      "email": "jane@example.com",
+      "fullName": "Jane Doe"
+    }
+  }
+}

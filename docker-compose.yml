@@ -102,7 +102,7 @@ services:
     networks:
       - Swaggies-net
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/ping"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/ping', (res) => process.exit(res.statusCode===200?0:1)).on('error', () => process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -138,7 +138,7 @@ services:
     networks:
       - Swaggies-net
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (res) => process.exit(res.statusCode===200?0:1)).on('error', () => process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -171,7 +171,7 @@ services:
     networks:
       - Swaggies-net
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3002/health"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3002/health', (res) => process.exit(res.statusCode===200?0:1)).on('error', () => process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -206,7 +206,7 @@ services:
     networks:
       - Swaggies-net
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3003/health"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3003/health', (res) => process.exit(res.statusCode===200?0:1)).on('error', () => process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -238,7 +238,7 @@ services:
     networks:
       - Swaggies-net
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3005/health"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3005/health', (res) => process.exit(res.statusCode===200?0:1)).on('error', () => process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -270,7 +270,7 @@ services:
     networks:
       - Swaggies-net
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3006/health"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3006/health', (res) => process.exit(res.statusCode===200?0:1)).on('error', () => process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -298,7 +298,7 @@ services:
     networks:
       - Swaggies-net
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3004/health"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3004/health', (res) => process.exit(res.statusCode===200?0:1)).on('error', () => process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3
