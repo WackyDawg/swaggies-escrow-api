@@ -2,6 +2,8 @@
 
 [![Cloud Build Status](https://storage.googleapis.com/cloudbuild-badges/swaggies-escrow/pocketapp-backend/main.svg)](https://console.cloud.google.com/cloud-build?project=swaggies-escrow)
 
+![Cloud Build Status](https://img.shields.io/badge/build-passing-brightgreen)
+
 > **Highly secure, scalable Node.js microservices backend for a fintech application — deployed on Google Cloud Platform.**
 
 ---
