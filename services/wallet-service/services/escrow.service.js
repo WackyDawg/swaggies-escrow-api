@@ -217,9 +217,15 @@ export class EscrowService {
             let freelancerEmail = "";
 
             try {
-                const freelancerId = String(escrow.freelancerId);              
+                const freelancerId = String(escrow.freelancerId);
                 const freelancer = await new Promise((resolve, reject) => {
-                    userClient.GetUserProfile({ userId: freelancerId }, (err, response) => {
+                    const deadline = new Date();
+                    deadline.setSeconds(deadline.getSeconds() + 5);
+                    
+                    userClient.GetUserProfile({ userId: freelancerId }, { deadline }, (err, response) => {
+                        const duration = Date.now() - startTime;
+                        console.log(`[EscrowService] gRPC GetUserProfile took ${duration}ms`);
+                        
                         if (err) {
                             console.error(`[EscrowService] gRPC Error fetching freelancer ${freelancerId}:`, err.message || err);
                             return reject(err);
