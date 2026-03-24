@@ -76,6 +76,7 @@ export class walletService {
                 success: false,
                 message: error.response?.data?.message || error.message,
                 data: null,
+                code: error.response?.status || 500
             };
         }
     }
@@ -98,6 +99,26 @@ export class walletService {
 
     async getBalance(accNumber) {
         try {
+            // Check local DB first for the account
+            const walletDoc = await this.Wallet.findOne({ 'account.accountNumber': accNumber });
+            const account = walletDoc?.account?.find(a => a.accountNumber === accNumber);
+
+            // If it's a sandbox account, return the local balance immediately
+            if (account && account.bankName === "Swaggies Sandbox Bank") {
+                return {
+                    code: 200,
+                    success: true,
+                    message: "Sandbox Balance retrieved successfully",
+                    data: {
+                        "balance": walletDoc.balance,
+                        "currency": "NGN",
+                        "ledgerBalance": walletDoc.balance,
+                        "availableBalance": walletDoc.balance,
+                        "lastUpdated": new Date(account.updatedAt || walletDoc.updatedAt).toISOString()
+                    }
+                };
+            }
+
             const token = await this.authToken(); const walletRes = await monnifyClient.get(
                 '/api/v1/disbursements/wallet/balance',
                 {
@@ -144,7 +165,24 @@ export class walletService {
             };
 
         } catch (error) {
-            // throw new Error({ message: error.message });
+            // If Monnify fails but we have the account locally, fallback to DB data
+            const walletDoc = await this.Wallet.findOne({ 'account.accountNumber': accNumber });
+            if (walletDoc) {
+                const account = walletDoc.account.find(a => a.accountNumber === accNumber);
+                return {
+                    code: 200,
+                    success: true,
+                    message: "Balance retrieved from local cache (Provider sync failed)",
+                    data: {
+                        "balance": walletDoc.balance,
+                        "currency": "NGN",
+                        "ledgerBalance": walletDoc.balance,
+                        "availableBalance": walletDoc.balance,
+                        "lastUpdated": new Date(account.updatedAt || walletDoc.updatedAt).toISOString()
+                    }
+                };
+            }
+
             return {
                 "success": false,
                 "message": "Failed to fetch wallet balance",
@@ -153,12 +191,49 @@ export class walletService {
                     "details": "Failed to fetch wallet balance please try again later",
                 },
                 "timestamp": Date.now(),
+                code: error.response?.status || 500
             };
         }
     }
 
     async getTransactions(accNumber, page = 1) {
         try {
+            // Check local DB first for the account
+            const walletDoc = await this.Wallet.findOne({ 'account.accountNumber': accNumber });
+            const account = walletDoc?.account?.find(a => a.accountNumber === accNumber);
+
+            // If it's a sandbox account, return local transactions
+            if (account && account.bankName === "Swaggies Sandbox Bank") {
+                const transactions = await this.Transaction.find({ walletId: walletDoc._id })
+                    .sort({ createdAt: -1 })
+                    .limit(50);
+
+                return {
+                    success: true,
+                    message: "Sandbox transactions retrieved",
+                    code: 200,
+                    data: transactions.map(tx => ({
+                        tx_ref: tx.transactionRef,
+                        monnify_ref: tx.metadata?.flutterwaveRef || "N/A",
+                        amount: tx.amount,
+                        transaction_date: tx.createdAt,
+                        transaction_type: tx.type,
+                        status: tx.status,
+                        narration: tx.description,
+                        balance_before: tx.balanceBefore,
+                        balance_after: tx.balanceAfter
+                    })),
+                    pagination: {
+                        page: 0,
+                        pageSize: 50,
+                        totalPages: 1,
+                        totalElements: transactions.length,
+                        isFirst: true,
+                        isLast: true
+                    }
+                };
+            }
+
             const walletRes = await monnifyClient.get(`/api/v1/disbursements/wallet/transactions`,
                 {
                     params: {
@@ -175,6 +250,7 @@ export class walletService {
             return {
                 success: responseData.requestSuccessful,
                 message: responseData.responseMessage,
+                code: 200,
                 data: transactions.map(tx => ({
                     tx_ref: tx.walletTransactionReference,
                     monnify_ref: tx.monnifyTransactionReference,
@@ -196,11 +272,38 @@ export class walletService {
                 }
             };
         } catch (error) {
+            // Fallback to local transactions if provider fails
+            const walletDoc = await this.Wallet.findOne({ 'account.accountNumber': accNumber });
+            if (walletDoc) {
+                const transactions = await this.Transaction.find({ walletId: walletDoc._id })
+                    .sort({ createdAt: -1 })
+                    .limit(50);
+
+                return {
+                    success: true,
+                    message: "Transactions retrieved from local cache (Provider sync failed)",
+                    code: 200,
+                    data: transactions.map(tx => ({
+                        tx_ref: tx.transactionRef,
+                        monnify_ref: "N/A",
+                        amount: tx.amount,
+                        transaction_date: tx.createdAt,
+                        transaction_type: tx.type,
+                        status: tx.status,
+                        narration: tx.description,
+                        balance_before: tx.balanceBefore,
+                        balance_after: tx.balanceAfter
+                    })),
+                    pagination: null
+                };
+            }
+
             return {
                 success: false,
                 message: error.response?.data?.responseMessage || error.message,
                 data: [],
-                pagination: null
+                pagination: null,
+                code: error.response?.status || 500
             };
         }
     }

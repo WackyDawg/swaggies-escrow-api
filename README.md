@@ -30,6 +30,10 @@ While the infrastructure is built for enterprise scale, the application layer is
 
 ---
 
+## Demo
+
+![Swaggies Demo](./demo.mp4)
+
 ---
 
 ## Architecture

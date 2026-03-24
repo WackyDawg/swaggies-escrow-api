@@ -287,14 +287,17 @@ export class EscrowService {
             }
 
             const milestone = escrow.milestones.id(milestoneId);
-            if (!milestone) throw new Error("Milestones not found.");
+            if (!milestone) throw new Error("Milestone not found.");
 
-            if (milestone.status !== 'PENDING') {
+            const isResubmission = milestone.status === 'DISPUTED';
+            if (milestone.status !== 'PENDING' && !isResubmission) {
                 throw new Error(`Cannot submit. Milestone is currently in ${milestone.status} state.`);
             }
 
             milestone.status = 'IN_REVIEW';
-            milestone.submissionDetails = submissionDetails;
+            milestone.submissionDetails = isResubmission 
+                ? `[RESUBMITTED]\n${submissionDetails}\n\n[HISTORY]:\n${milestone.submissionDetails}`
+                : submissionDetails;
             await escrow.save();
 
             let freelancerName = "Freelancer";
@@ -320,7 +323,7 @@ export class EscrowService {
               await new Promise((resolve, reject) => {
                 notificationClient.SendEmail({
                   to: escrow.clientEmail,
-                  subject: `Milestone Review: ${milestone.title}`,
+                  subject: `${isResubmission ? '[RESUBMISSION] ' : ''}Milestone Review: ${milestone.title}`,
                   template: 'milestone_review',
                   variables: {
                     milestoneTitle: milestone.title,
@@ -343,7 +346,7 @@ export class EscrowService {
 
             return {
                 success: true,
-                message: `Milestone '${milestone.title}' submitted successfully.Client has been notified.`,
+                message: `Milestone '${milestone.title}' submitted successfully. Client has been notified.`,
                 data: escrow
             }
         } catch (error) {
