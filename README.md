@@ -29,12 +29,11 @@ While the infrastructure is built for enterprise scale, the application layer is
   - **The Tech:** Clients can trigger a milestone-level freeze. The API flags the specific tranche as `DISPUTED`, halts all ledger movements for that contract, and logs the client's payload for administrative mediation.
 
 ---
+## 🎥 Demo
 
-## Demo
+Click below to watch how Swaggies works 👇
 
 [![Swaggies Demo](https://img.youtube.com/vi/NuMcFTbH6wc/0.jpg)](https://youtu.be/NuMcFTbH6wc)
-
-
 ---
 
 ## Architecture
